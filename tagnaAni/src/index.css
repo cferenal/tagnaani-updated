@@ -1,0 +1,310 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 29 58% 61%;
+    --foreground: 29 100% 25%;
+
+    --card: 28 65% 90%;
+    --card-foreground: 29 100% 25%;
+    --popover: 28 65% 90%;
+    --popover-foreground: 29 100% 25%;
+
+    --primary: 29 100% 20%;
+    --primary-foreground: 28 58% 80%;
+
+    --secondary: 28 58% 80%;
+    --secondary-foreground: 29 100% 20%;
+
+    --muted: 28 48% 84%;
+    --muted-foreground: 29 100% 25%;
+
+    --accent: 28 58% 80%;
+    --accent-foreground: 29 100% 20%;
+
+    --destructive: 8 68% 42%;
+    --destructive-foreground: 28 65% 95%;
+
+    --border: 29 60% 34%;
+    --input: 29 55% 38%;
+    --ring: 29 100% 20%;
+
+    --chart-1: 29 100% 20%;
+    --chart-2: 29 100% 25%;
+    --chart-3: 29 58% 61%;
+    --chart-4: 28 58% 80%;
+    --chart-5: 25 70% 40%;
+
+    --olive-deep: 29 100% 20%;
+    --olive: 29 85% 28%;
+    --olive-soft: 29 58% 61%;
+    --olive-ink: 29 100% 20%;
+    --olive-tint: 28 58% 80%;
+
+    --radius: 1.25rem;
+    --font-heading: "Fraunces", Georgia, serif;
+    --font-body: "Manrope", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Fraunces", Georgia, serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    background-color: #FFFFFF;
+    color: #7F3E00;
+    @apply font-body;
+    margin: 0;
+    width: 100%;
+    max-width: 100vw;
+    overflow: hidden;
+    overscroll-behavior-x: none;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6,
+  strong, b,
+  .font-bold, .font-semibold, .font-display {
+    color: #643100;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display font-bold;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    background-color: #EACAAE !important;
+    color: #643100 !important;
+    border-color: rgba(100, 49, 0, 0.45) !important;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: rgba(127, 62, 0, 0.65) !important;
+  }
+}
+
+/* --- PHONE CASE SIMULATOR WRAPPER (case.png) --- */
+.phone-stage {
+  display: flex;
+  height: 100dvh;
+  width: 100vw;
+  max-width: 100vw;
+  align-items: center;
+  justify-content: center;
+  background-color: #FFFFFF;
+  padding: 0;
+  overflow: hidden;
+}
+
+.phone-frame {
+  position: relative;
+  height: min(98dvh, 940px);
+  aspect-ratio: 318 / 588;
+  max-width: 98vw;
+}
+
+.phone-screen {
+  position: absolute;
+  top: 6%;
+  bottom: 5%;
+  left: 7.2%;
+  right: 7.2%;
+  border-radius: 22px;
+  isolation: isolate;
+  background-color: #D49961;
+  overflow: hidden;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+}
+
+.phone-scroll {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+  max-width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden !important;
+  overscroll-behavior-x: none;
+  touch-action: pan-y;
+  position: relative;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+.phone-scroll > * {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.phone-scroll .min-h-\[100dvh\] {
+  min-height: 100% !important;
+  padding-top: 2.75rem !important;
+}
+
+.phone-bezel-overlay {
+  z-index: 45;
+  mix-blend-mode: multiply;
+  clip-path: inset(0.5% 5.5% 0.5% 5.5% round 58px);
+}
+
+[role="dialog"] {
+  max-width: 335px !important;
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .eyebrow {
+    color: #643100;
+    @apply text-[10px] font-bold uppercase tracking-[0.15em];
+  }
+  .grain {
+    background-image: radial-gradient(hsl(var(--foreground) / 0.06) 1px, transparent 1px);
+    background-size: 14px 14px;
+  }
+}
+
+@layer components {
+  .card-soft {
+    background-color: #F6E6D4;
+    border: 1px solid rgba(100, 49, 0, 0.25);
+    border-radius: 1.65rem;
+    box-shadow: 0 16px 34px -28px rgba(100, 49, 0, 0.55);
+  }
+
+  .bg-primary {
+    background-color: #EACAAE !important;
+    color: #643100 !important;
+    border: 1.5px solid #643100;
+  }
+
+  .bg-secondary {
+    background-color: #EACAAE !important;
+    color: #643100 !important;
+  }
+
+  .olive-band {
+    background-image: linear-gradient(
+      135deg,
+      #643100 0%,
+      #7F3E00 52%,
+      #D49961 100%
+    );
+  }
+  .olive-chip {
+    background: #EACAAE;
+    color: #643100;
+  }
+  .olive-solid {
+    background: #EACAAE;
+    color: #643100;
+    border: 1px solid #643100;
+  }
+}
+
+/* --- money breakdown list --- */
+.mbrk {
+  container: mbrk / inline-size;
+}
+.mbrk-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.mbrk-row {
+  position: relative;
+}
+.mbrk-row + .mbrk-row {
+  border-top: 1px solid transparent;
+  margin-top: 18px;
+  padding-top: 20px;
+}
+.mbrk-row + .mbrk-row::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -1px;
+  height: 1px;
+  background: rgba(100, 49, 0, 0.25);
+  transform-origin: left center;
+}
+.mbrk-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.56em 0.72em 0.62em;
+  border-radius: 4px;
+  background: #EACAAE;
+  color: #643100;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.mbrk-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+}
+.mbrk-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(15px, 4.3cqi, 19px);
+  line-height: 1.15;
+  margin: 0;
+  color: #643100;
+}
+.mbrk-value {
+  flex: 0 0 auto;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(15px, 4.3cqi, 19px);
+  line-height: 1;
+  margin: 0;
+  color: #643100;
+}
+.mbrk-sym {
+  font-size: 0.74em;
+  margin-right: 0.14em;
+  color: #7F3E00;
+}
+.mbrk-bar {
+  position: relative;
+  height: 9px;
+  margin-top: 10px;
+  background-color: #EACAAE;
+}
+.mbrk-fill {
+  display: block;
+  height: 100%;
+  width: var(--pct);
+  background: #643100;
+  transform-origin: left center;
+}
+.public-scroll {
+  height: 100dvh;
+  overflow-y: auto;
+  background: #f6e6d4;
+}

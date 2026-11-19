@@ -1,0 +1,90 @@
+{
+  "name": "FarmProfile",
+  "type": "object",
+  "properties": {
+    "farmer_name": {
+      "type": "string",
+      "description": "Farmer's name"
+    },
+    "city": {
+      "type": "string",
+      "description": "Municipality or city in Mindanao"
+    },
+    "province": {
+      "type": "string"
+    },
+    "region": {
+      "type": "string"
+    },
+    "latitude": {
+      "type": "number"
+    },
+    "longitude": {
+      "type": "number"
+    },
+    "farm_size": {
+      "type": "number",
+      "description": "Farm area in hectares"
+    },
+    "crops": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "problems": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "onboarded": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "farmer_name",
+    "city"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

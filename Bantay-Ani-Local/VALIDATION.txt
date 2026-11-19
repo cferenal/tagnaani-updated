@@ -1,0 +1,8 @@
+BUILD VALIDATION
+
+Passed: Python source compilation; Node JavaScript syntax checks for both HTML interfaces.
+Passed: 10 isolated planner logic checks with synthetic fixtures.
+Not run: Flask route suite (Flask unavailable in build environment).
+Not run: live NASA/AppEEARS/CMR/Open-Meteo requests from application, real credentials, IMERG download, browser UI, MacroDroid SMS.
+
+This package does not claim a fully QA-calibrated automated multi-satellite crop model. See README scope boundaries.
