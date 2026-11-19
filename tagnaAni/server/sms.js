@@ -22,6 +22,7 @@ export function smsHelp(lang = "ENG") {
     format,
     `${example}: ANI 9200 RICE DROUGHT`,
     `${spaces}: ANI Iligan City | Sweet potato | Pest infestation`,
+    `${{ ENG: "Barangay + city/municipality", BIS: "Barangay ug siyudad/munisipyo", TAG: "Barangay at lungsod/munisipalidad" }[lang] || "Barangay + city/municipality"}: ANI Burnay Gitagum | rice drought`,
     "",
     `${crops}: ${CROPS.join(", ")}`,
     "",
@@ -38,7 +39,7 @@ export function normalizePhone(value) {
   return /^\+639\d{9}$/.test(number) ? number : null;
 }
 
-export function parseSms(message) {
+export function parseSms(message, allowLookup = false) {
   const match = String(message ?? "").trim().match(/^ANI(?:\s+([\s\S]*))?$/i);
   if (!match) return null;
   let body = match[1]?.trim() || "";
@@ -65,12 +66,15 @@ export function parseSms(message) {
     const short = full.replace(/ city$/, "");
     return city === full || city === short || (pipe.length > 1 && city.endsWith(` ${full}`));
   });
-  if (!location || !rawCrop || !problem) return { kind: "help", lang };
-  const locality = city !== placeLabel.toLowerCase() || [location.name.toLowerCase(), location.name.toLowerCase().replace(/ city$/, "")].includes(city)
-    ? null : placeLabel;
+  if (!rawCrop || !problem) return { kind: "help", lang };
+  const locality = location && (city !== placeLabel.toLowerCase() || [location.name.toLowerCase(), location.name.toLowerCase().replace(/ city$/, "")].includes(city)
+    ? null : placeLabel);
   const cropKey = rawCrop.replaceAll("_", " ").toLowerCase();
   const crop = /^rice$|^palay$/i.test(cropKey) ? "Rice (palay)"
     : CROPS.find((name) => name.toLowerCase() === cropKey) || rawCrop.replaceAll("_", " ");
+  if (!location) return allowLookup && placeLabel.length <= 100
+    ? { kind: "lookup", place: placeLabel, crop, problem, lang }
+    : { kind: "help", lang };
   return { kind: "advisory", city: location.name, crop, problem, lang, ...(locality && { locality }) };
 }
 

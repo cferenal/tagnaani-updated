@@ -89,7 +89,7 @@ Farm setup uses Open-Meteo's Philippine location search alongside the
 bundled Mindanao city and ZIP list. Manual coordinates are checked against
 the Natural Earth 1:50m Philippine land boundary from world-atlas. Some
 small islands and coastal points may need a named-location search instead.
-The SMS parser still uses its own supported Mindanao city and ZIP list.
+SMS also looks up Philippine places outside its bundled city and ZIP list. A barangay prefix can accompany a recognized city or municipality, for example `ANI Burnay Gitagum | rice drought`. The place displayed in an SMS can be more specific than the forecast grid.
 
 ### Switch to hosted two-way SMS
 
@@ -152,6 +152,6 @@ SMS advisories use Open-Meteo or, when it is unavailable, MET Norway for
 available weather fields. NASA POWER climatology supplies a historical
 monthly root-zone wetness index and the inputs for the optional 18-month
 rotation screen. The rotation is a planning option and uses assumed crop
-thresholds. Missing fields and unmeasured CO2 are labeled in the SMS.
+thresholds. Unavailable weather fields are labeled. CO2 is omitted because the available sources do not measure it at the farm. The dashboard planner uses NASA POWER historical monthly values for its baseline, with ±25% rainfall sensitivity tabs and an 18-month PDF export.
 `ANI HELP BISAYA`, `ANI HELP TAGALOG`, and `ANI HELP ENGLISH` send the
 format, examples, supported crop presets, and typical farm problems.

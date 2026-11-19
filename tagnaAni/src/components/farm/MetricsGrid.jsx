@@ -1,4 +1,4 @@
-import { Thermometer, Flame, Droplets, CloudRain, Sun, Leaf } from "lucide-react";
+import { Thermometer, Flame, Droplets, CloudRain, Sun } from "lucide-react";
 import { TONE_CLASS, pestRiskLevel } from "@/lib/weather";
 import { cn } from "@/lib/utils";
 
@@ -21,15 +21,14 @@ function Metric({ Icon, label, value, unit, sub }) {
 export default function MetricsGrid({ current, pestScore }) {
   const pest = pestRiskLevel(pestScore);
   return (
-    <div className="grid grid-cols-2 gap-2.5">
+    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
       <Metric Icon={Thermometer} label="Temp" value={Math.round(current.temp)} unit="°C" sub="Air temperature" />
       <Metric Icon={Flame} label="Heat index" value={Math.round(current.heatIndex)} unit="°C" sub="Feels like" />
       <Metric Icon={Droplets} label="Humidity" value={Math.round(current.humidity)} unit="%" sub="Relative" />
       <Metric Icon={CloudRain} label="Rain" value={current.precip.toFixed(1)} unit="mm" sub="Today so far" />
       <Metric Icon={Sun} label="Radiation" value={Math.round(current.radiation)} unit="W/m²" sub="Solar intensity" />
-      <Metric Icon={Leaf} label="CO₂ est." value={Math.round(current.co2)} unit="ppm" sub="From air quality" />
 
-      <div className="card-soft col-span-2 p-4">
+      <div className="card-soft col-span-full p-4">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/90">
             Pest likelihood

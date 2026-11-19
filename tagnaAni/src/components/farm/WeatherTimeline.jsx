@@ -1,35 +1,34 @@
 import { weatherCodeInfo } from "@/lib/weather";
-import { todayKey } from "@/lib/farmData";
 import { cn } from "@/lib/utils";
 
-function dayLabel(dateStr, index) {
-  if (index === 0) return "Today";
+function dayLabel(dateStr, today) {
+  if (today) return "Today";
   const d = new Date(dateStr + "T00:00:00Z");
   return d.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" });
 }
 
 export default function WeatherTimeline({ daily = [] }) {
-  const todayStr = todayKey();
-  const startIdx = daily.findIndex((d) => d.date >= todayStr);
-  const alignedDaily = startIdx > 0 ? daily.slice(startIdx) : daily;
+  const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
+  const alignedDaily = daily.filter((day) => day.date >= todayStr);
+  if (!alignedDaily.length) return <p className="text-sm">Forecast unavailable. Refresh to check again.</p>;
 
   return (
-    <div className="no-scrollbar flex w-full max-w-full gap-2.5 overflow-x-auto pb-1">
+    <div className="grid w-full grid-flow-col auto-cols-[minmax(90px,1fr)] gap-2.5 overflow-x-auto pb-1">
       {alignedDaily.map((day, i) => {
         const { Icon } = weatherCodeInfo(day.code);
-        const active = i === 0;
+        const active = day.date === todayStr;
         return (
           <div
             key={day.date + i}
             className={cn(
-              "w-[90px] shrink-0 rounded-[1.5rem] border px-2.5 py-4 text-center transition-colors",
+              "min-w-0 rounded-[1.5rem] border px-2.5 py-4 text-center transition-colors",
               active
                 ? "border-2 border-[#643100] bg-[#EACAAE] text-[#643100]"
                 : "border-[#643100]/30 bg-[#F6E6D4] text-[#643100]",
             )}
           >
             <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#643100]">
-              {dayLabel(day.date, i)}
+              {dayLabel(day.date, active)}
             </p>
             <Icon
               className="mx-auto my-3 h-6 w-6 text-[#643100]"

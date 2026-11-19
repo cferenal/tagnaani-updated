@@ -69,11 +69,12 @@ test("advisory formats real, partial, and unavailable provider data without samp
   assert.match(tagum, /Radiation sa adlaw: 350 W\/m\^2/);
   assert.match(tagum, /62% \(binulang aberids\)/);
   assert.match(tagum, /rotasyon: .* -> /);
-  assert.match(tagum, /CO2: wala masukod/);
+  assert.doesNotMatch(tagum, /CO2/);
+  assert.match(tagum, /Tagna-Ani App \(Generated: .* PHT\)$/);
   const iligan = await advisory(parseSms("ANI 9200 CORN DROUGHT"));
   assert.match(iligan, /Temperature: 27 C/);
   assert.match(iligan, /Precipitation: unavailable/);
-  assert.match(iligan, /MET Norway/);
+  assert.doesNotMatch(iligan, /MET Norway/);
   const mati = await advisory(parseSms("ANI 8200 RICE DROUGHT"));
   assert.match(mati, /Mati City, Davao Oriental/);
   assert.match(mati, /Temperature: unavailable/);
@@ -92,6 +93,9 @@ test("advisory syntax accepts one or two pipes and preserves a barangay prefix",
   assert.equal(parseSms("bagong silang iligan city | rice | drought"), null);
   assert.equal(parseSms("ANI constructor RICE DROUGHT").kind, "help");
   assert.equal(parseSms("ANI 9200 | sweet potato yellow leaves").crop, "Sweet potato");
+  assert.equal(parseSms("ANI Burnay Gitagum | rice drought").city, "Gitagum");
+  assert.equal(parseSms("ANI Burnay Gitagum | rice drought").locality, "Burnay Gitagum");
+  assert.equal(parseSms("ANI 9020 RICE DROUGHT").city, "Gitagum");
   assert.equal(smsHelp("BIS").includes("\n\nMga tanom:"), true);
   assert.equal(smsHelp("BIS").includes("\n\nKasagarang problema sa uma:"), true);
   assert.equal(smsHelp("ENG").includes("\n\nCrop presets:"), true);

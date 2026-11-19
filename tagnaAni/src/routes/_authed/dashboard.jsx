@@ -4,11 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import {
   Bell,
-  CalendarRange,
-  Droplets,
   MapPin,
   RefreshCw,
-  Sprout,
 } from "lucide-react";
 
 import { db, syncFarmName } from "@/api/base44Client";
@@ -26,7 +23,7 @@ import MetricsGrid from "@/components/farm/MetricsGrid";
 import CropAdvice from "@/components/farm/CropAdvice";
 import AlertsSheet from "@/components/farm/AlertsSheet";
 import OfflineNotice from "@/components/farm/OfflineNotice";
-import { cn } from "@/lib/utils";
+import { RotationPlanner } from "@/components/farm/RotationPlanner";
 import { SmsSettings } from "@/components/farm/SmsSettings";
 import { LogoLoading } from "@/components/LogoLoading";
 
@@ -43,9 +40,8 @@ function HomePage() {
   const [profile, setProfile] = useState(null);
   const [weather, setWeather] = useState(null);
   const [plan, setPlan] = useState(null);
-  const [scenarioIdx, setScenarioIdx] = useState(0);
   const [irrigated, setIrrigated] = useState(false);
-  const [showAllMonths, setShowAllMonths] = useState(false);
+  const [planLoading, setPlanLoading] = useState(true);
 
   const [records, setRecords] = useState([]);
   const [transactions, setTransactions] = useState([]);
@@ -115,23 +111,21 @@ function HomePage() {
       const lat = currentProfile.latitude ?? loc.lat;
       const lon = currentProfile.longitude ?? loc.lon;
 
-      try {
-        const [wx, rotationPlan] = await Promise.all([
-          getFarmWeather({ data: { lat, lon } }),
-          getCropRotationPlan({
-            lat,
-            lon,
-            crops: currentProfile.crops || ["Rice (palay)", "Peanut"],
-            irrigated: useIrr,
-          }),
-        ]);
-        setWeather(wx);
-        setPlan(rotationPlan);
-        cacheSet(`weather:${uid}`, wx);
+      setPlanLoading(true);
+      setPlan(null);
+      const [forecast, rotation] = await Promise.allSettled([
+        getFarmWeather({ data: { lat, lon } }),
+        getCropRotationPlan({ lat, lon, crops: currentProfile.crops || [], irrigated: useIrr }),
+      ]);
+      if (forecast.status === "fulfilled") {
+        setWeather(forecast.value);
+        cacheSet(`weather:${uid}`, forecast.value);
         setOffline(false);
-      } catch {
+      } else {
         setOffline(true);
       }
+      setPlan(rotation.status === "fulfilled" ? rotation.value : null);
+      setPlanLoading(false);
 
       setLoading(false);
     },
@@ -163,21 +157,9 @@ function HomePage() {
     setRefreshing(false);
   }
 
-  async function toggleIrrigated() {
-    const next = !irrigated;
-    setIrrigated(next);
-    await load(next);
-  }
-
   if (!profile || (loading && !weather)) return <LogoLoading />;
 
   const firstName = (profile?.farmer_name || sessionUser?.username || "farmer").split(" ")[0];
-  const scenarios = plan?.scenarios || [];
-  const activeScenario = scenarios[scenarioIdx] || scenarios[0];
-  const visibleMonths = showAllMonths
-    ? activeScenario?.months || []
-    : (activeScenario?.months || []).slice(0, 6);
-
   return (
     <div className="w-full max-w-full overflow-x-hidden px-4 pt-7">
       {/* TAGNA-ANI BRAND BANNER & LOGO */}
@@ -279,117 +261,8 @@ function HomePage() {
             <MetricsGrid current={weather.current} pestScore={insights.pest} />
           </section>
 
-          {/* 18-MONTH NASA CROP ROTATION PLANNER */}
-          {activeScenario && (
-            <section className="mt-8">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <div className="flex min-w-0 items-center gap-1.5">
-                  <CalendarRange className="h-3.5 w-3.5 shrink-0 text-[#643100]" strokeWidth={2} />
-                  <h3 className="eyebrow truncate">18-Month NASA Crop Rotation</h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={toggleIrrigated}
-                  className={cn(
-                    "inline-flex shrink-0 items-center gap-1 rounded-full border border-[#643100] px-2.5 py-1 text-[9.5px] font-bold uppercase tracking-wider transition-colors",
-                    irrigated ? "bg-[#EACAAE] text-[#643100]" : "bg-card text-[#7F3E00]",
-                  )}
-                >
-                  <Droplets className="h-3 w-3" />
-                  {irrigated ? "Irrigated: Yes" : "Rainfed"}
-                </button>
-              </div>
-
-              <div className="card-soft overflow-hidden p-4">
-                <div className="flex gap-1 rounded-full bg-muted p-1">
-                  {scenarios.map((s, idx) => (
-                    <button
-                      key={s.name}
-                      type="button"
-                      onClick={() => setScenarioIdx(idx)}
-                      className={cn(
-                        "min-w-0 flex-1 truncate rounded-full px-1.5 py-1.5 text-[10px] font-bold transition-colors",
-                        scenarioIdx === idx
-                          ? "bg-[#EACAAE] text-[#643100] shadow-sm"
-                          : "text-[#7F3E00]",
-                      )}
-                    >
-                      {idx === 0 ? "Baseline" : idx === 1 ? "El Niño (-25%)" : "La Niña (+25%)"}
-                    </button>
-                  ))}
-                </div>
-
-                <p className="mt-2.5 text-[11.5px] text-[#7F3E00]">
-                  NASA POWER monthly agroclimatology screen for{" "}
-                  <span className="font-bold text-[#643100]">{profile.city}</span>. Rotates crop families
-                  to protect soil nitrogen and root moisture.
-                </p>
-
-                <div className="mt-3 space-y-2">
-                  {visibleMonths.map((row) => {
-                    const isPlant = row.action.startsWith("Plant");
-                    const isHarvest = row.action.includes("Harvest");
-                    const isHold = !row.crop;
-                    return (
-                      <div
-                        key={row.month}
-                        className="flex items-center justify-between gap-2 rounded-2xl border border-[#643100]/25 bg-[#EACAAE]/60 px-3 py-2.5"
-                      >
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-[11px] font-bold text-[#643100]">
-                              {row.month}
-                            </span>
-                            <span className="truncate font-display text-[14px] font-bold text-[#643100]">
-                              {row.crop || "Cover crop / fallow"}
-                            </span>
-                          </div>
-                          <p className="mt-0.5 truncate text-[10px] text-[#7F3E00]">
-                            Rain {row.scenario_rain_mm_day ?? "—"} mm/d · Max{" "}
-                            {row.historical_max_air_c ? `${Math.round(row.historical_max_air_c)}°C` : "—"} ·
-                            Root{" "}
-                            {row.root_wetness_index ? `${Math.round(row.root_wetness_index * 100)}%` : "—"}
-                          </p>
-                        </div>
-                        <span
-                          className={cn(
-                            "shrink-0 rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider",
-                            isHold
-                              ? "bg-[#9A6B12]/15 text-[#643100]"
-                              : isPlant
-                                ? "border border-[#643100]/40 bg-[#EACAAE] text-[#643100]"
-                                : isHarvest
-                                  ? "bg-[#2E6B44]/15 text-[#2E6B44]"
-                                  : "bg-card text-[#7F3E00]",
-                          )}
-                        >
-                          {isHold ? "Soil cover" : isPlant ? "Plant" : isHarvest ? "Harvest" : "Grow"}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-3 flex items-center justify-between pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowAllMonths((v) => !v)}
-                    className="text-[11.5px] font-bold text-[#643100] underline"
-                  >
-                    {showAllMonths ? "Show first 6 months" : "Show all 18 months"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navigate({ to: "/onboarding" })}
-                    className="inline-flex items-center gap-1 text-[11.5px] font-bold text-[#643100] hover:underline"
-                  >
-                    <Sprout className="h-3.5 w-3.5" />
-                    Edit farm crops
-                  </button>
-                </div>
-              </div>
-            </section>
-          )}
+          <RotationPlanner plan={plan} loading={planLoading} city={profile.city} irrigated={irrigated}
+            onIrrigationChange={setIrrigated} onEditCrops={() => navigate({ to: "/onboarding" })} />
 
           <section className="mt-8">
             <h3 className="eyebrow mb-3">From your records</h3>

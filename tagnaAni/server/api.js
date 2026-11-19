@@ -1,5 +1,7 @@
 import { createHash, randomBytes, randomInt, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import { isPhilippineLand } from "../src/lib/locations.js";
+import { resolveSmsLocation } from "./sms-location.js";
+import { monthlyClimate } from "./sms-weather.js";
 import { reverseLocation } from "./reverse-location.js";
 import { drainSms, enqueue, summaries } from "./reminders.js";
 import { openStore } from "./store.js";
@@ -251,7 +253,7 @@ export function createTagnaApi() {
         const phone = normalizePhone(twilio ? data.From : data.from);
         const message = twilio ? data.Body : data.message;
         const inboundId = twilio ? data.MessageSid : data.id;
-        const command = typeof message === "string" && message.length <= 1000 ? parseSms(message) : null;
+        let command = typeof message === "string" && message.length <= 1000 ? parseSms(message, true) : null;
         const respond = () => {
           if (!twilio) return json(200, { ok: true });
           res.writeHead(200, { "Content-Type": "text/xml", "Cache-Control": "no-store" });
@@ -260,6 +262,7 @@ export function createTagnaApi() {
         if (!phone || !command) return respond();
         if (twilio && data.AccountSid !== process.env.TWILIO_ACCOUNT_SID) fail(403, "Unexpected SMS account.");
         limit(`sms:${phone}`, 20, 15 * minute);
+        if (command.kind === "lookup") command = await resolveSmsLocation(command);
         const messageId = hash(inboundId ? `${twilio}:${inboundId}` : `${phone}:${message}:${Math.floor(Date.now() / (5 * minute))}`);
         const delivery = await change((state) => {
           const now = Date.now();
@@ -371,6 +374,7 @@ export function createTagnaApi() {
       const sessionId = token && hash(token);
       let resetDelivery;
       let reverse;
+      let climatePoint;
       let deployHook;
       let drain;
       const output = await change((state) => {
@@ -395,6 +399,15 @@ export function createTagnaApi() {
           return { ok: true };
         }
         if (user.mustChangePassword) fail(403, "Change your temporary password before continuing.");
+        if (path === "/climate" && post) {
+          const { lat, lon } = data;
+          if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < 4 || lat > 22 || lon < 116 || lon > 128) {
+            fail(400, "Choose a Philippine farm location.");
+          }
+          limit(`climate:${user.id}`, 30, 15 * minute);
+          climatePoint = { lat, lon };
+          return {};
+        }
         if (path === "/location/reverse" && post) {
           const { lat, lon } = data;
           if (!isPhilippineLand(lat, lon)) fail(400, "Enter coordinates on Philippine land.");
@@ -579,6 +592,7 @@ export function createTagnaApi() {
         }
         fail(404, "Route not found.");
       });
+      if (climatePoint) return json(200, { climate: await monthlyClimate(climatePoint) });
       if (reverse) return json(200, { location: await reverseLocation(reverse.lat, reverse.lon) });
       if (drain) return json(200, await drainSms(change));
       if (deployHook) {

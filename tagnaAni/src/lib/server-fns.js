@@ -1,3 +1,4 @@
+import { tagnaRequest } from "@/api/base44Client";
 import { buildCropAssumptions, buildMonthlyRotation } from "@/lib/cropRotation";
 import { heatIndex } from "@/lib/heat";
 
@@ -51,8 +52,6 @@ export async function getFarmWeather({ data }) {
           radiation: cur.shortwave_radiation ?? 350,
           code: cur.weather_code ?? 2,
           heatIndex: heatIndex(temp, humidity) ?? Math.round(temp),
-          co2: 420,
-          gwetroot: 0.68,
         },
         daily: (d.time || []).map((dateStr, i) => ({
           date: dateStr,
@@ -95,8 +94,6 @@ export async function getFarmWeather({ data }) {
       radiation: 350,
       code: 2,
       heatIndex: 30,
-      co2: 420,
-      gwetroot: 0.68,
     },
     daily,
     fetchedAt: new Date().toISOString(),
@@ -104,37 +101,13 @@ export async function getFarmWeather({ data }) {
 }
 
 export async function getCropRotationPlan({ lat, lon, crops = [], irrigated = false, startMonth }) {
-  const now = new Date();
-  const start =
-    startMonth || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const cropAssumptions = buildCropAssumptions(crops);
-
-  try {
-    if (!API_BASE) throw new Error("Local backend is disabled.");
-    const res = await fetch(`${API_BASE}/plan`, {
-      method: "POST",
-      headers: HEADERS,
-      body: JSON.stringify({
-        lat: Number(lat ?? 8.2289),
-        lon: Number(lon ?? 124.2434),
-        start,
-        crops: cropAssumptions,
-        irrigated: Boolean(irrigated),
-        dry_factor: 0.75,
-        wet_factor: 1.25,
-        review_hold_months: 0,
-        allow_fallback: true,
-      }),
-    });
-    if (res.ok) {
-      return await res.json();
-    }
-  } catch {
-    /* fallback to client-side 18-month calculation if backend is offline */
-  }
-
-  const rainBase = [5.2, 4.4, 3.8, 3.5, 6.4, 8.2, 8.6, 8.1, 8.4, 8.0, 6.8, 5.8];
-  const tempBase = [30.2, 30.8, 31.8, 32.6, 32.1, 31.2, 30.8, 31.0, 31.1, 31.0, 30.8, 30.4];
-  const gwetBase = [0.62, 0.56, 0.48, 0.44, 0.6, 0.72, 0.75, 0.73, 0.74, 0.72, 0.68, 0.65];
-  return buildMonthlyRotation({ start, cropAssumptions, irrigated, rainBase, tempBase, gwetBase });
+  const calendar = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+    year: "numeric", month: "2-digit", timeZone: "Asia/Manila",
+  }).formatToParts().map(({ type, value }) => [type, value]));
+  const start = startMonth || `${calendar.year}-${calendar.month}`;
+  const { climate } = await tagnaRequest("/climate", { lat, lon });
+  if (!climate || ![...climate.rainBase, ...climate.tempBase].every(Number.isFinite)) return null;
+  return buildMonthlyRotation({
+    start, cropAssumptions: buildCropAssumptions(crops), irrigated, ...climate,
+  });
 }
