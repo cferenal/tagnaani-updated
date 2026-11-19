@@ -10,7 +10,7 @@ import {
   Sprout,
 } from "lucide-react";
 
-import { db, syncFarmProfile } from "@/api/base44Client";
+import { db } from "@/api/base44Client";
 import {
   getCropRotationPlan,
   getFarmWeather,
@@ -89,7 +89,7 @@ function HomePage() {
         });
       }
 
-      if (!currentProfile) {
+      if (!currentProfile || currentProfile.onboarded === false) {
         setLoading(false);
         navigate({ to: "/onboarding" });
         return;
@@ -97,7 +97,6 @@ function HomePage() {
 
       setProfile(currentProfile);
       cacheSet(`profile:${uid}`, currentProfile);
-      void syncFarmProfile(currentProfile);
 
       if (rRes.status === "fulfilled") {
         const items = rRes.value.items || [];
@@ -215,7 +214,7 @@ function HomePage() {
           <p className="flex items-center gap-1.5 truncate text-[10px] font-bold uppercase tracking-[0.18em] text-[#643100]">
             <MapPin className="h-3 w-3 shrink-0" strokeWidth={2} />
             <span className="truncate">
-              Mindanao{profile?.city ? ` · ${profile.city}` : ""}
+              {[profile?.region, profile?.city].filter(Boolean).join(" · ")}
             </span>
           </p>
           <h1 className="mt-3 truncate text-[28px] leading-[1.08] text-[#643100]">

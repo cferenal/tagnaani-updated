@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "node server/start.js",
     "start": "node server/start.js",
-    "test": "node --test server/sms.test.js"
+    "test": "node --test server/*.test.js"
   },
   "dependencies": {
     "@base44/sdk": "^0.8.61",

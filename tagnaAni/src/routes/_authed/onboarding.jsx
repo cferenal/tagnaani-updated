@@ -6,7 +6,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { db, getSessionUser, syncFarmProfile } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { cacheGet, cacheSet } from "@/lib/offline";
-import { findLocation } from "@/lib/farmData";
+import { savedLocation } from "@/lib/locations";
 import LocationPicker from "@/components/farm/onboarding/LocationPicker";
 import CropPicker from "@/components/farm/onboarding/CropPicker";
 import ProblemsPicker from "@/components/farm/onboarding/ProblemsPicker";
@@ -36,7 +36,7 @@ function OnboardingPage() {
   const [profile, setProfile] = useState(null);
   // Leave name blank after registration so the farmer types their name manually
   const [name, setName] = useState("");
-  const [locationName, setLocationName] = useState("");
+  const [location, setLocation] = useState(null);
   const [farmSize, setFarmSize] = useState("");
   const [crops, setCrops] = useState([]);
   const [problems, setProblems] = useState([]);
@@ -57,7 +57,7 @@ function OnboardingPage() {
       if (cancelled || !existing) return;
       setProfile(existing);
       setName(existing.farmer_name || "");
-      setLocationName(existing.city || "");
+      setLocation(savedLocation(existing));
       setFarmSize(existing.farm_size ? String(existing.farm_size) : "");
       setCrops(existing.crops || []);
       setProblems(existing.problems || []);
@@ -72,18 +72,18 @@ function OnboardingPage() {
 
   const canContinue =
     step === 0
-      ? name.trim().length > 1 && !!locationName
+      ? name.trim().length > 1 && !!location
       : step === 1
         ? crops.length > 0 && parseFloat(farmSize) > 0
         : step === 2
           ? problems.length > 0
           : true;
 
-  const location = locationName ? findLocation(locationName) : null;
-
   async function finish() {
-    const loc = findLocation(locationName);
+    const loc = location;
+    if (!loc) return;
     const payload = {
+      patchVersion: profile?.patchVersion,
       farmer_name: name.trim(),
       city: loc.name,
       province: loc.province,
@@ -179,9 +179,9 @@ function OnboardingPage() {
             </div>
             <div>
               <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.14em] text-[#643100]">
-                Farm location in Mindanao
+                Farm location in the Philippines
               </label>
-              <LocationPicker value={locationName} onChange={setLocationName} />
+              <LocationPicker value={location} onChange={setLocation} />
             </div>
           </div>
         )}
@@ -228,7 +228,7 @@ function OnboardingPage() {
               <p className="eyebrow">Location</p>
               <p className="mt-2 font-display text-[18px] text-[#643100]">{location?.name || "—"}</p>
               <p className="mt-1 text-[12px] text-[#7F3E00]">
-                {location ? `${location.province} · ${location.region}` : ""}
+                {location ? [location.province, location.region].filter(Boolean).join(" · ") : ""}
               </p>
             </div>
             <div className="rounded-[1.35rem] border border-border/80 bg-card p-4">

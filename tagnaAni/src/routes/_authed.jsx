@@ -10,6 +10,7 @@ export const Route = createFileRoute("/_authed")({
     if (!user) {
       throw redirect({ to: "/login" });
     }
+    if (user.mustChangePassword) throw redirect({ to: "/change-temporary-password" });
     return { user };
   },
   component: AuthedLayout,

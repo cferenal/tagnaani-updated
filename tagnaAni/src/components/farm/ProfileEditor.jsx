@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import LocationPicker from "@/components/farm/onboarding/LocationPicker";
 import CropPicker from "@/components/farm/onboarding/CropPicker";
 import ProblemsPicker from "@/components/farm/onboarding/ProblemsPicker";
-import { findLocation } from "@/lib/farmData";
+import { savedLocation } from "@/lib/locations";
 
 const FIELD =
   "w-full rounded-xl border border-border bg-background px-3.5 py-3 text-[15px] outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/10";
@@ -11,7 +11,7 @@ const LABEL = "mb-1.5 block text-[10.5px] font-semibold uppercase tracking-[0.14
 
 export default function ProfileEditor({ open, onOpenChange, profile, onSave }) {
   const [name, setName] = useState("");
-  const [locationName, setLocationName] = useState("");
+  const [location, setLocation] = useState(null);
   const [farmSize, setFarmSize] = useState("");
   const [crops, setCrops] = useState([]);
   const [problems, setProblems] = useState([]);
@@ -21,7 +21,7 @@ export default function ProfileEditor({ open, onOpenChange, profile, onSave }) {
   useEffect(() => {
     if (!open) return;
     setName(profile?.farmer_name || "");
-    setLocationName(profile?.city || "");
+    setLocation(savedLocation(profile));
     setFarmSize(profile?.farm_size ? String(profile.farm_size) : "");
     setCrops(profile?.crops || []);
     setProblems(profile?.problems || []);
@@ -29,11 +29,13 @@ export default function ProfileEditor({ open, onOpenChange, profile, onSave }) {
   }, [open, profile]);
 
   async function submit() {
-    const loc = findLocation(locationName);
+    const loc = location;
+    if (!loc) return;
     try {
       setSaving(true);
       setError("");
       await onSave({
+        patchVersion: profile?.patchVersion,
         farmer_name: name.trim(),
         city: loc.name,
         province: loc.province,
@@ -76,7 +78,7 @@ export default function ProfileEditor({ open, onOpenChange, profile, onSave }) {
           </div>
           <div>
             <label className={LABEL}>Location</label>
-            <LocationPicker value={locationName} onChange={setLocationName} />
+            <LocationPicker value={location} onChange={setLocation} />
           </div>
           <div>
             <label className={LABEL}>Crops</label>
@@ -92,7 +94,7 @@ export default function ProfileEditor({ open, onOpenChange, profile, onSave }) {
           <button
             type="button"
             onClick={submit}
-            disabled={saving || name.trim().length < 2}
+            disabled={saving || !location || name.trim().length < 2}
             className="w-full rounded-2xl bg-primary py-3.5 text-[12px] font-semibold uppercase tracking-[0.14em] text-primary-foreground disabled:opacity-40"
           >
             {saving ? "Saving…" : "Save profile"}

@@ -1,17 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowUpRight, MessageSquareText, Sprout } from "lucide-react";
+import { useAuth } from "@/lib/AuthContext";
 import { PublicPage } from "@/components/PublicPage";
 
 export const Route = createFileRoute("/")({ component: LandingPage });
 
 function LandingPage() {
+  const { user } = useAuth();
   return (
     <PublicPage>
       <section className="grid items-center gap-8 py-12 sm:py-20 md:grid-cols-[1.25fr_0.75fr]">
         <div>
           <h1 className="font-display text-5xl font-bold leading-[1.05] sm:text-7xl">Farm guidance for Mindanao</h1>
           <p className="mt-5 max-w-xl text-lg leading-relaxed">Check local weather, get guidance on a crop problem by text, and keep track of your farm in Tagna-Ani.</p>
-          <Link to="/dashboard" className="mt-7 inline-flex rounded-full bg-[#643100] px-5 py-3 text-sm font-bold !text-white">Open the app</Link>
+          <Link to={user?.mustChangePassword ? "/change-temporary-password" : "/dashboard"} className="mt-7 inline-flex rounded-full bg-[#643100] px-5 py-3 text-sm font-bold !text-white">{user?.mustChangePassword ? "Change temporary password" : user ? "Return to dashboard" : "Open the app"}</Link>
         </div>
         <img src="/logo.png" className="mx-auto w-full max-w-56 rounded-[2rem] sm:max-w-72" alt="Tagna-Ani" width="288" height="288" />
       </section>

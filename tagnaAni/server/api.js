@@ -1,4 +1,5 @@
 import { createHash, randomBytes, randomInt, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
+import { isPhilippineLand } from "../src/lib/locations.js";
 import { openStore } from "./store.js";
 import { advisory, equalSecret, normalizePhone, parseSms, sendSms, SMS_HELP, verifyTwilio } from "./sms.js";
 
@@ -9,6 +10,62 @@ const validPassword = (password) => typeof password === "string" && password.len
 const minute = 60_000;
 const sessionLifetime = 7 * 24 * 60 * minute;
 const sessionName = "tagna_session";
+const adminLimit = 7;
+const countAdmins = (state) => Object.values(state.users).filter(({ role }) => role === "admin").length;
+const ownerKey = () => usernameKey(process.env.TAGNA_ADMIN_USERNAME);
+const shortText = (value) => typeof value === "string" ? value.trim().slice(0, 100) : "";
+const phoneEnding = (phone) => phone ? `•••• ${phone.slice(-4)}` : "—";
+
+function audit(state, actor, target, action, changes = []) {
+  state.adminAudit = [
+    { id: randomUUID(), at: Date.now(), actor: actor.username, target: target.username, action, changes },
+    ...(state.adminAudit || []).slice(0, 999),
+  ];
+}
+
+function updateFarmer(state, actor, target, data) {
+  const changes = [];
+  const farm = target.farm || {};
+  const patch = { ...target.farmPatch };
+  if (data.location) {
+    const { name, province, region, lat, lon } = data.location;
+    if (!shortText(name) || !isPhilippineLand(lat, lon)) fail(400, "Choose a location on Philippine land.");
+    patch.location = { name: shortText(name), province: shortText(province), region: shortText(region), lat, lon };
+    changes.push({ field: "Location", before: farm.city, after: `${patch.location.name} (${lat}, ${lon})` });
+    farm.city = patch.location.name;
+  }
+  for (const [key, field, plural] of [["crop", "Current crop", "crops"], ["problem", "Current problem", "problems"]]) {
+    if (!Object.hasOwn(data, key)) continue;
+    const value = shortText(data[key]);
+    if (!value) fail(400, `Enter a value for ${field.toLowerCase()}.`);
+    if (farm[key] === value) continue;
+    changes.push({ field, before: farm[key], after: value });
+    farm[key] = value;
+    if (patch[plural]) patch[plural] = [value, ...patch[plural].slice(1).filter((item) => item !== value)];
+    else patch[key] = value;
+  }
+  if (Object.hasOwn(data, "phone")) {
+    const phone = normalizePhone(data.phone);
+    if (!phone) fail(400, "Enter a Philippine mobile number.");
+    const old = target.pendingPhone || target.phone;
+    if (phone !== old) {
+      if (Object.values(state.users).some((entry) => entry.id !== target.id && (entry.phone === phone || entry.pendingPhone === phone))) {
+        fail(409, "That mobile number is already assigned.");
+      }
+      if (target.phone && state.subscriptions[target.phone]) state.subscriptions[target.phone].subscribed = false;
+      changes.push({ field: "Mobile number", before: phoneEnding(old), after: `${phoneEnding(phone)} (verification pending)` });
+      target.pendingPhone = phone;
+      delete target.phone;
+      delete target.reset;
+      delete target.pairing;
+    }
+  }
+  if (changes.some(({ field }) => field !== "Mobile number")) {
+    target.farm = farm;
+    target.farmPatch = { ...patch, version: randomUUID() };
+  }
+  if (changes.length) audit(state, actor, target, "Edited farmer details", changes);
+}
 
 function passwordHash(password, salt = randomBytes(16).toString("hex")) {
   const key = scryptSync(password, salt, 64, { N: 32768, r: 8, p: 3, maxmem: 64 * 1024 * 1024 });
@@ -27,7 +84,8 @@ function fail(status, message) {
 function publicUser(user, state) {
   return {
     id: user.id, username: user.username, role: user.role,
-    phone: user.phone || null, subscribed: Boolean(state.subscriptions[user.phone]?.subscribed),
+    mustChangePassword: Boolean(user.mustChangePassword),
+    pendingPhone: user.pendingPhone || null, phone: user.phone || null, subscribed: Boolean(state.subscriptions[user.phone]?.subscribed),
   };
 }
 
@@ -49,19 +107,42 @@ async function readBody(req) {
   }
 }
 
+const smsHistoryWindow = 30 * 24 * 60 * minute;
+const smsHistoryLimit = 1000;
+
+function recentSmsQueries(state, now) {
+  return (state.smsQueries || []).filter(({ at }) => at > now - smsHistoryWindow);
+}
+
+function updateSmsQuery(state, id, status) {
+  const query = state.smsQueries?.find((entry) => entry.id === id);
+  if (query) query.status = status;
+}
+
+function groupedSmsQueries(state) {
+  const groups = new Map();
+  state.smsQueries = recentSmsQueries(state, Date.now());
+  for (const { phone, ...query } of state.smsQueries) {
+    if (!groups.has(phone)) groups.set(phone, []);
+    groups.get(phone).push(query);
+  }
+  return Array.from(groups, ([phone, queries]) => ({ phone, queries }));
+}
+
 function applySmsCommand(state, phone, command, message, now) {
   const entry = state.subscriptions[phone];
   if (command.kind === "verify") {
     const user = Object.values(state.users).find(({ pairing, role }) =>
       role !== "admin" && pairing?.until > now && pairing.phone === phone && pairing.code === hash(command.code));
     if (!user) return "Tagna-Ani: This verification code is invalid or expired.";
-    if (Object.values(state.users).some((other) => other !== user && other.phone === phone)) {
+    if (Object.values(state.users).some((other) => other !== user && (other.phone === phone || other.pendingPhone === phone))) {
       return "Tagna-Ani: This number is already linked.";
     }
     if (user.phone && user.phone !== phone && state.subscriptions[user.phone]) {
       state.subscriptions[user.phone].subscribed = false;
     }
     user.phone = phone;
+    delete user.pendingPhone;
     delete user.pairing;
     delete user.reset;
     return "Tagna-Ani: Your mobile number is verified. Return to the app to continue.";
@@ -90,12 +171,14 @@ export function createTagnaApi() {
     const key = usernameKey(username);
     const current = Object.hasOwn(state.users, key) && state.users[key];
     if (current?.role !== "admin" && current) throw new Error("Admin username is already registered.");
+    if (!current && countAdmins(state) >= adminLimit) throw new Error("The seven administrator slots are in use.");
     if (!current || !matches(password, current.passwordHash)) {
       const id = current?.id || randomUUID();
       for (const [token, session] of Object.entries(state.sessions)) {
         if (session.id === id) delete state.sessions[token];
       }
       state.users[key] = { ...current, id, username, role: "admin", passwordHash: passwordHash(password) };
+      if (!current) audit(state, state.users[key], state.users[key], "Created administrator from Render settings");
     }
   }));
   ready.catch(() => console.error("Tagna-Ani could not initialize its database or admin configuration."));
@@ -179,19 +262,30 @@ export function createTagnaApi() {
           const reply = applySmsCommand(state, phone, command, message, now);
           const record = { reply, lease: now + minute, until: now + 24 * 60 * minute };
           state.messages[messageId] = record;
+          if (command.kind === "advisory") {
+            const { city, crop, problem, lang } = command;
+            state.smsQueries = [
+              { id: messageId, phone, at: now, city, crop, problem, lang, status: "pending" },
+              ...recentSmsQueries(state, now).slice(0, smsHistoryLimit - 1),
+            ];
+          }
           return record;
         });
         if (delivery) {
           try {
             await sendSms(phone, typeof delivery.reply === "string" ? delivery.reply : await advisory(delivery.reply));
           } catch (err) {
-            await change((state) => { state.messages[messageId].lease = 0; });
+            await change((state) => {
+              state.messages[messageId].lease = 0;
+              updateSmsQuery(state, messageId, "failed");
+            });
             throw err;
           }
           await change((state) => {
             const record = state.messages[messageId];
             record.sent = true;
             delete record.reply;
+            updateSmsQuery(state, messageId, "accepted");
           });
         }
         return respond();
@@ -287,9 +381,36 @@ export function createTagnaApi() {
         }
         if (!user) fail(401, "Please log in.");
         if (path === "/me" && !post) return { user: publicUser(user, state) };
+        if (path === "/password/first-login" && post && user.mustChangePassword) {
+          limit(`first-password:${user.id}`, 10, 15 * minute);
+          if (!validPassword(data.password)) fail(400, "Use a password between 12 and 128 characters.");
+          if (matches(data.password, user.passwordHash)) fail(400, "Choose a different password.");
+          user.passwordHash = passwordHash(data.password);
+          delete user.mustChangePassword;
+          revoke(state, user.id);
+          audit(state, user, user, "Changed temporary password");
+          sessionCookie(res, "", 0);
+          return { ok: true };
+        }
+        if (user.mustChangePassword) fail(403, "Change your temporary password before continuing.");
+        if (path === "/profile" && !post) return { patch: user.farmPatch || null };
         if (path === "/profile" && post) {
-          const text = (value) => typeof value === "string" ? value.trim().slice(0, 100) : "";
-          user.farm = { city: text(data.city), crop: text(data.crop), problem: text(data.problem) };
+          if (user.farmPatch && data.patchVersion !== user.farmPatch.version) {
+            fail(409, "An administrator updated your farm details. Reload your profile before saving.");
+          }
+          user.farm = { city: shortText(data.city), crop: shortText(data.crop), problem: shortText(data.problem) };
+          if (user.farmPatch) {
+            const { patchVersion, location, crops, problems } = data;
+            user.farmPatch = { version: patchVersion,
+              location: location && isPhilippineLand(location.lat, location.lon)
+                ? { name: shortText(location.name), province: shortText(location.province), region: shortText(location.region), lat: location.lat, lon: location.lon }
+                : user.farmPatch.location,
+              crop: user.farmPatch.crop,
+              crops: Array.isArray(crops) ? crops.slice(0, 30).map(shortText).filter(Boolean) : user.farmPatch.crops,
+              problem: user.farmPatch.problem,
+              problems: Array.isArray(problems) ? problems.slice(0, 30).map(shortText).filter(Boolean) : user.farmPatch.problems,
+            };
+          }
           return { ok: true };
         }
         if (path === "/phone" && post) {
@@ -297,6 +418,7 @@ export function createTagnaApi() {
           limit(`phone:${user.id}`, 5, 15 * minute);
           const phone = normalizePhone(data.phone);
           if (!phone) fail(400, "Enter a Philippine mobile number.");
+          if (user.pendingPhone && phone !== user.pendingPhone) fail(400, "Verify the number assigned by your administrator first.");
           if (phone === user.phone) fail(409, "This mobile number is already verified.");
           if (user.phone && (typeof data.password !== "string" || data.password.length > 128 ||
             !matches(data.password, user.passwordHash))) fail(401, "Enter your current password to change numbers.");
@@ -324,9 +446,15 @@ export function createTagnaApi() {
             const active = new Set(Object.values(state.sessions)
               .filter(({ until }) => until > Date.now()).map(({ id }) => id));
             return {
+              smsHistory: groupedSmsQueries(state),
+              auditLog: state.adminAudit || [],
+              adminCount: countAdmins(state),
+              adminLimit,
+              canCreateAdmins: session.key === ownerKey(),
               users: accounts.map((entry) => ({
                 ...publicUser(entry, state),
                 phone: entry.phone?.slice(-4) || null,
+                pendingPhone: entry.pendingPhone?.slice(-4) || null,
                 city: entry.farm?.city || "", crop: entry.farm?.crop || "", problem: entry.farm?.problem || "",
                 online: active.has(entry.id),
               })),
@@ -334,6 +462,27 @@ export function createTagnaApi() {
                 .filter(([phone, info]) => info.subscribed && !linked.has(phone))
                 .map(([phone, { city, crop, problem }]) => ({ mobileEnding: phone.slice(-4), city, crop, problem })),
             };
+          }
+          if (path === "/admin/create" && post) {
+            if (session.key !== ownerKey()) fail(403, "Only the primary administrator can create admin accounts.");
+            if (countAdmins(state) >= adminLimit) fail(409, "All seven administrator slots are in use.");
+            const username = String(data.username ?? "").trim();
+            const key = usernameKey(username);
+            if (!validUser(username)) fail(400, "Enter a username with 2 to 40 letters, digits, dots, hyphens or underscores.");
+            if (Object.hasOwn(state.users, key)) fail(409, "Username already in use.");
+            const temporaryPassword = randomBytes(18).toString("base64url");
+            const created = { id: randomUUID(), username, role: "admin", mustChangePassword: true,
+              passwordHash: passwordHash(temporaryPassword) };
+            state.users[key] = created;
+            audit(state, user, created, "Created administrator");
+            return { username, temporaryPassword };
+          }
+          if (path === "/admin/edit" && post) {
+            const key = usernameKey(data.username);
+            const target = Object.hasOwn(state.users, key) && state.users[key];
+            if (!target || target.id !== data.userId || target.role !== "user") fail(404, "Farmer account unavailable.");
+            updateFarmer(state, user, target, data);
+            return { ok: true };
           }
           if (path === "/admin/reset" && post) {
             const key = usernameKey(data.username);
@@ -343,6 +492,7 @@ export function createTagnaApi() {
             const code = String(randomInt(10_000_000, 100_000_000));
             target.reset = { code: hash(code), until: Date.now() + 10 * minute, attempts: 0 };
             resetDelivery = { phone: target.phone, code };
+            audit(state, user, target, "Requested password reset SMS");
             return { ok: true };
           }
           if (path === "/admin/delete" && post) {
@@ -351,6 +501,7 @@ export function createTagnaApi() {
             if (!target || target.id !== data.userId || target.role === "admin") fail(404, "Farmer account unavailable.");
             if (data.confirm !== target.username) fail(400, "Type the username to confirm deletion.");
             if (target.phone) delete state.subscriptions[target.phone];
+            audit(state, user, target, "Deleted farmer account");
             delete state.users[key];
             revoke(state, target.id);
             return { ok: true };

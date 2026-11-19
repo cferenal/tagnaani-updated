@@ -38,10 +38,19 @@ that username in Render rotates the account password and revokes its sessions on
 the next start. Keep administrator credentials and all SMS secrets server-side.
 Use the Render dashboard for service restarts and deployments.
 
-Back up any active private account and farm data before switching. This release
-starts a fresh account database and does not import the tracked plaintext account
-files. Browser-only farm records are tied to the original account IDs. Export or
-recover that information privately before replacing an active deployment.
+The Render-created account is the primary admin and counts toward the seven
+admin slots. In Admin, use **Create an administrator** to add up to six more.
+Share the displayed temporary password privately. Invited administrators must
+set their own password before using admin tools. The Admin action log shows the
+most recent 1,000 actions, their actors, and the fields changed. A phone number
+assigned by an administrator requires verification by the farmer before SMS
+password recovery works on the new number.
+
+If upgrading from the original plaintext-file version, back up any active
+private account and farm data first. The Postgres version does not import those
+files. If the app already uses Postgres, keep the same `DATABASE_URL` and admin
+username to preserve its accounts, including across rebuilds. Browser-only farm
+records remain tied to the same browser and account.
 Treat passwords and the old MacroDroid reply trigger in Git history as exposed.
 Rotate the trigger and ask affected users to change any reused credentials.
 Removing files from the current branch leaves earlier Git history intact.
@@ -49,7 +58,8 @@ Removing files from the current branch leaves earlier Git history intact.
 Set the following public values before building if available.
 
 - `VITE_TAGNA_SMS_NUMBER` — verified Philippine service number in `+639XXXXXXXXX`
-  format. Publish it after a real end-to-end SMS test.
+  format. The built-in contact number is 09269656818. Set an empty value to hide
+  the number until you finish a real end-to-end SMS test.
 - `VITE_TAGNA_CONTACT_EMAIL` — shared inbox monitored by Team prECEsion.
 
 ### Keep MacroDroid for testing
@@ -62,10 +72,24 @@ Set the inbound action to HTTP POST
 `https://<service>.onrender.com/__tagna/sms/inbound` with
 `Content-Type: application/json` and `Authorization: Bearer <SMS_INBOUND_SECRET>`.
 Store the same random `SMS_INBOUND_SECRET` on Render. Pass the actual SMS sender
-and body as JSON fields `from` and `message`. Use MacroDroid's JSON-safe value
+and body as JSON fields `from` and `message`. The Render value is the secret
+alone. The MacroDroid header value is `Bearer ` followed by the same secret.
+Use MacroDroid's JSON-safe value
 encoding and include a stable per-message `id` if available. There is no ntfy step.
 A successful webhook response means the outbound relay accepted the request.
 Check the phone's Send SMS action for actual carrier delivery.
+
+The admin page groups new advisory requests by sender, with up to 1,000
+entries from the last 30 days. Each entry shows whether the SMS relay
+accepted the reply request. Receipt on the destination phone still requires
+a real SMS test. Help, subscription commands, and verification codes are
+excluded from this history.
+
+Farm setup uses Open-Meteo's Philippine location search alongside the
+bundled Mindanao city and ZIP list. Manual coordinates are checked against
+the Natural Earth 1:50m Philippine land boundary from world-atlas. Some
+small islands and coastal points may need a named-location search instead.
+The SMS parser still uses its own supported Mindanao city and ZIP list.
 
 ### Switch to hosted two-way SMS
 

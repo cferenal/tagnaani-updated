@@ -1,17 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { CROPS, MINDANAO_LOCATIONS } from "../src/lib/farmData.js";
+import { CROPS, MINDANAO_LOCATIONS, MINDANAO_POSTAL_CODES } from "../src/lib/farmData.js";
 
-const postal = {
-  8000: "Davao City", 8100: "Tagum City", 8002: "Digos City", 8105: "Panabo City",
-  8200: "Mati City", 9500: "General Santos City", 9506: "Koronadal City",
-  9400: "Kidapawan City", 9800: "Tacurong City", 9000: "Cagayan de Oro",
-  9200: "Iligan City", 8700: "Malaybalay City", 8703: "Manolo Fortich",
-  8709: "Valencia City", 9014: "Gingoog City", 7200: "Ozamiz City",
-  7000: "Zamboanga City", 7100: "Dipolog City", 7016: "Pagadian City",
-  9600: "Cotabato City", 9700: "Marawi City", 8600: "Butuan City", 8400: "Surigao City",
-};
-
-export const SMS_HELP = "Text ANI <ZIP/CITY> <CROP> <PROBLEM>. Example: ANI 9200 RICE DROUGHT. For multi-word names: ANI Iligan City | Sweet potato | Yellow leaves.";
+export const SMS_HELP = "Text ANI <ZIP/CITY> <CROP> <PROBLEM>. Example: ANI 9200 RICE DROUGHT. For multi-word names: ANI Iligan City | Sweet potato | Pest infestation.";
 
 export function normalizePhone(value) {
   let number = String(value ?? "").trim().replace(/[\s()-]/g, "");
@@ -35,7 +25,7 @@ export function parseSms(message) {
   const [place, rawCrop, problem] = pipe.length === 3
     ? pipe
     : [words[0], words[1], words.slice(2).join(" ")];
-  const city = postal[place] || place?.replaceAll("_", " ");
+  const city = MINDANAO_POSTAL_CODES[place] || place?.replaceAll("_", " ");
   const location = MINDANAO_LOCATIONS.find(({ name }) =>
     name.toLowerCase() === city?.toLowerCase() ||
     name.toLowerCase().replace(/ city$/, "") === city?.toLowerCase());

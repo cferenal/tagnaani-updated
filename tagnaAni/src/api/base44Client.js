@@ -74,6 +74,9 @@ export async function syncFarmProfile(profile) {
   try {
     await tagnaRequest("/profile", {
       city: profile.city, crop: profile.crops?.[0], problem: profile.problems?.[0],
+      patchVersion: profile.patchVersion, crops: profile.crops, problems: profile.problems,
+      location: { name: profile.city, province: profile.province, region: profile.region,
+        lat: profile.latitude, lon: profile.longitude },
     });
   } catch {
     // Retain the browser's farm profile while the server is unreachable.
@@ -101,12 +104,35 @@ function writeLocalStore(entityName, items) {
   }
 }
 
+async function applyFarmPatch(items) {
+  if (!getSessionUser()) return items;
+  try {
+    const { patch } = await tagnaRequest("/profile");
+    if (!patch) return items;
+    const [profile = { onboarded: false }, ...rest] = items;
+    const { location } = patch;
+    const crops = patch.crops || (patch.crop && [patch.crop, ...(profile.crops || []).slice(1).filter((crop) => crop !== patch.crop)]);
+    const problems = patch.problems || (patch.problem && [patch.problem, ...(profile.problems || []).slice(1).filter((problem) => problem !== patch.problem)]);
+    const updated = { ...profile, patchVersion: patch.version,
+      ...(location && { city: location.name, province: location.province, region: location.region,
+        latitude: location.lat, longitude: location.lon }),
+      ...(crops && { crops }),
+      ...(problems && { problems }),
+    };
+    const result = [updated, ...rest];
+    if (items.length) writeLocalStore("FarmProfile", result);
+    return result;
+  } catch {
+    return items;
+  }
+}
+
 function createEntityClient(entityName) {
   return {
     async list() {
       const localItems = readLocalStore(entityName);
       if (localItems.length > 0) {
-        return { items: localItems };
+        return { items: entityName === "FarmProfile" ? await applyFarmPatch(localItems) : localItems };
       }
       try {
         if (!API_BASE) throw new Error("Local backend is disabled.");
@@ -117,9 +143,9 @@ function createEntityClient(entityName) {
         const allItems = data.items || [];
         const userItems = uid ? allItems.filter((x) => x.user_id === uid) : [];
         writeLocalStore(entityName, userItems);
-        return { items: userItems };
+        return { items: entityName === "FarmProfile" ? await applyFarmPatch(userItems) : userItems };
       } catch {
-        return { items: localItems };
+        return { items: entityName === "FarmProfile" ? await applyFarmPatch(localItems) : localItems };
       }
     },
     async filter() {
@@ -204,7 +230,7 @@ export const db = {
   auth: {
     hasToken: () => Boolean(getSessionUser()),
     isAuthenticated: async () => Boolean(getSessionUser()),
-    me: async () => getSessionUser(),
+    me: refreshSession,
     login: async (username, password) => loginSimple(username, password),
     register: async ({ username, password }) => registerSimple(username, password),
     logout: async () => {

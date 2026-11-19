@@ -1,3 +1,13 @@
+export const MINDANAO_POSTAL_CODES = {
+  8000: "Davao City", 8100: "Tagum City", 8002: "Digos City", 8105: "Panabo City",
+  8200: "Mati City", 9500: "General Santos City", 9506: "Koronadal City",
+  9400: "Kidapawan City", 9800: "Tacurong City", 9000: "Cagayan de Oro",
+  9200: "Iligan City", 8700: "Malaybalay City", 8703: "Manolo Fortich",
+  8709: "Valencia City", 9014: "Gingoog City", 7200: "Ozamiz City",
+  7000: "Zamboanga City", 7100: "Dipolog City", 7016: "Pagadian City",
+  9600: "Cotabato City", 9700: "Marawi City", 8600: "Butuan City", 8400: "Surigao City",
+};
+
 export const MINDANAO_LOCATIONS = [
   { name: "Davao City", province: "Davao del Sur", region: "Davao Region", lat: 7.1907, lon: 125.4553 },
   { name: "Tagum City", province: "Davao del Norte", region: "Davao Region", lat: 7.4478, lon: 125.8078 },

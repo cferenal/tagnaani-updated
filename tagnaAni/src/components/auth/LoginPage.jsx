@@ -16,6 +16,10 @@ export function LoginPage() {
     setBusy(true);
     try {
       const user = await loginSimple(username, password);
+      if (user.mustChangePassword) {
+        window.location.href = "/change-temporary-password";
+        return;
+      }
       const isAdmin = user?.role === "admin";
       const cachedProfile = cacheGet(`profile:${user.id}`)?.value;
       const listRes = await db.entities.FarmProfile.list();
