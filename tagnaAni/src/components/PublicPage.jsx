@@ -1,3 +1,4 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 import { useAuth } from "@/lib/AuthContext";
 import { Link } from "@tanstack/react-router";
 
@@ -6,6 +7,7 @@ export const smsNumber = /^\+639\d{9}$/.test(configuredNumber) ? configuredNumbe
 export const displaySmsNumber = smsNumber ? `0${smsNumber.slice(3)}` : "";
 
 export function PublicPage({ children }) {
+  const { t } = useSiteLanguage();
   const { user, isLoadingAuth } = useAuth();
   return (
     <div className="mx-auto flex min-h-full max-w-6xl flex-col px-5 sm:px-9">
@@ -13,34 +15,35 @@ export function PublicPage({ children }) {
         <Link to="/" className="flex items-center gap-3 font-display text-xl font-bold">
           <img src="/logo.png" alt="" width="40" height="40" className="rounded-xl" /> Tagna-Ani
         </Link>
-        <nav aria-label="Account" className="flex items-center gap-4 text-sm font-bold">
+        <nav aria-label={t("Account")} className="flex items-center gap-4 text-sm font-bold">
           {user ? (
             <Link to={user.mustChangePassword ? "/change-temporary-password" : "/dashboard"}
               className="rounded-full bg-[#643100] px-4 py-2 !text-white">
-              {user.mustChangePassword ? "Change temporary password" : "Return to dashboard"}
+              {user.mustChangePassword ? t("Change temporary password") : t("Return to dashboard")}
             </Link>
           ) : !isLoadingAuth && <>
-          <Link to="/login" className="underline-offset-4 hover:underline">Log in</Link>
-          <Link to="/register" className="rounded-full bg-[#643100] px-4 py-2 !text-white">Register</Link>
+          <Link to="/login" className="underline-offset-4 hover:underline">{t("Log in")}</Link>
+          <Link to="/register" className="rounded-full bg-[#643100] px-4 py-2 !text-white">{t("Register")}</Link>
           </>}
         </nav>
       </header>
       <main className="grow">{children}</main>
       <footer className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-[#643100]/20 py-6 text-sm">
-        <Link to="/guides/sms">SMS guide</Link>
-        <Link to="/guides/app">App guide</Link>
-        <Link to="/about">About Team prECEsion</Link>
-        <Link to="/contact">Contact us</Link>
+        <Link to="/guides/sms">{t("SMS guide")}</Link>
+        <Link to="/guides/app">{t("App guide")}</Link>
+        <Link to="/about">{t("About Team prECEsion")}</Link>
+        <Link to="/contact">{t("Contact us")}</Link>
       </footer>
     </div>
   );
 }
 
 export function PublicArticle({ title, children }) {
+  const { t } = useSiteLanguage();
   return (
     <PublicPage>
       <article className="mx-auto max-w-2xl space-y-5 py-12 leading-relaxed sm:py-20">
-        <h1 className="font-display text-4xl font-bold sm:text-5xl">{title}</h1>
+        <h1 className="font-display text-4xl font-bold sm:text-5xl">{t(title)}</h1>
         {children}
       </article>
     </PublicPage>

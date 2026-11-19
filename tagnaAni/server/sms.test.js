@@ -30,6 +30,7 @@ test("ANI HELP uses short and full language names and includes the supported lis
   for (const [command, lang, heading] of [
     ["ANI HELP BIS", "BIS", "Mga tanom"],
     ["ANI HELP BISAYA", "BIS", "Mga tanom"],
+    ["ANI HELP TAG", "TAG", "Mga pananim"],
     ["ANI HELP TAGALOG", "TAG", "Mga pananim"],
     ["ANI HELP ENGLISH", "ENG", "Crop presets"],
   ]) {
@@ -37,6 +38,7 @@ test("ANI HELP uses short and full language names and includes the supported lis
     assert.ok(smsHelp(lang).includes(heading));
     assert.ok(smsHelp(lang).includes("Sweet potato"));
   }
+  assert.match(smsHelp(), /TAG or TAGALOG.*BIS or BISAYA/);
   assert.match(smsHelp(), /Pest infestation.*High input costs/);
   assert.equal(parseSms("ANI 9200 CORN DROUGHT TAGALOG").lang, "TAG");
 });
@@ -72,7 +74,8 @@ test("advisory formats real, partial, and unavailable provider data without samp
   assert.doesNotMatch(tagum, /CO2/);
   assert.match(tagum, /Tagna-Ani App \(Generated: .* PHT\)$/);
   const iligan = await advisory(parseSms("ANI 9200 CORN DROUGHT"));
-  assert.match(iligan, /Temperature: 27 C/);
+  assert.match(iligan, /Your current crop: Corn\nYour number 1 problem: DROUGHT\n\nTemperature: 27 C/);
+  assert.match(iligan, /\n\nReminder: Use this as a guide[^\n]*\n\nPowered by Tagna-Ani App \(Generated: .* PHT\)$/);
   assert.match(iligan, /Precipitation: unavailable/);
   assert.doesNotMatch(iligan, /MET Norway/);
   const mati = await advisory(parseSms("ANI 8200 RICE DROUGHT"));

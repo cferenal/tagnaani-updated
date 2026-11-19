@@ -1,6 +1,7 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 import { Announcements } from "@/components/farm/Announcements";
 import "@/api/base44Client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import {
   Bell,
@@ -32,6 +33,7 @@ export const Route = createFileRoute("/_authed/dashboard")({
 });
 
 function HomePage() {
+  const { t, locale } = useSiteLanguage();
   const { user: sessionUser } = Route.useRouteContext();
   const navigate = useNavigate();
   const uid = sessionUser.id;
@@ -42,6 +44,7 @@ function HomePage() {
   const [plan, setPlan] = useState(null);
   const [irrigated, setIrrigated] = useState(false);
   const [planLoading, setPlanLoading] = useState(true);
+  const loadId = useRef(0);
 
   const [records, setRecords] = useState([]);
   const [transactions, setTransactions] = useState([]);
@@ -50,8 +53,9 @@ function HomePage() {
   const [offline, setOffline] = useState(false);
 
   const load = useCallback(
-    async (overrideIrrigated) => {
-      const useIrr = overrideIrrigated ?? irrigated;
+    async () => {
+      const requestId = ++loadId.current;
+      setPlanLoading(true);
       const cachedProfile = cacheGet(`profile:${uid}`)?.value;
       const cachedWeather = cacheGet(`weather:${uid}`)?.value;
       const cachedRecords = cacheGet(`records:${uid}`)?.value;
@@ -66,6 +70,8 @@ function HomePage() {
         db.entities.CropRecord.list({ sort: "-created_date", limit: 200 }),
         db.entities.Transaction.list({ sort: "-created_date", limit: 200 }),
       ]);
+
+      if (requestId !== loadId.current) return;
 
       const entityProfile = pRes.status === "fulfilled" ? pRes.value.items?.[0] : undefined;
       let currentProfile = entityProfile || cachedProfile || null;
@@ -85,6 +91,8 @@ function HomePage() {
           onboarded: true,
         });
       }
+
+      if (requestId !== loadId.current) return;
 
       if (!currentProfile || currentProfile.onboarded === false) {
         setLoading(false);
@@ -111,12 +119,12 @@ function HomePage() {
       const lat = currentProfile.latitude ?? loc.lat;
       const lon = currentProfile.longitude ?? loc.lon;
 
-      setPlanLoading(true);
-      setPlan(null);
       const [forecast, rotation] = await Promise.allSettled([
         getFarmWeather({ data: { lat, lon } }),
-        getCropRotationPlan({ lat, lon, crops: currentProfile.crops || [], irrigated: useIrr }),
+        getCropRotationPlan({ lat, lon, crops: currentProfile.crops || [], irrigated }),
       ]);
+      if (requestId !== loadId.current) return;
+
       if (forecast.status === "fulfilled") {
         setWeather(forecast.value);
         cacheSet(`weather:${uid}`, forecast.value);
@@ -129,7 +137,7 @@ function HomePage() {
 
       setLoading(false);
     },
-    [uid, irrigated, navigate, isAdmin],
+    [uid, irrigated, navigate, isAdmin, sessionUser.username],
   );
 
   useEffect(() => {
@@ -139,17 +147,17 @@ function HomePage() {
   const insights = useMemo(() => {
     if (!weather || !profile) return null;
     return {
-      priority: buildPriority(weather, profile),
-      alerts: buildAlerts(weather),
-      advice: buildCropAdvice({ records, transactions, profile }),
+      priority: buildPriority(weather, profile, t),
+      alerts: buildAlerts(weather, t, locale),
+      advice: buildCropAdvice({ records, transactions, profile, t }),
       pest: pestScore(weather),
-      updated: new Date(weather.fetchedAt).toLocaleTimeString("en-US", {
+      updated: new Date(weather.fetchedAt).toLocaleTimeString(locale, {
         hour: "numeric",
         minute: "2-digit",
         timeZone: "Asia/Manila",
       }),
     };
-  }, [weather, profile, records, transactions]);
+  }, [weather, profile, records, transactions, t, locale]);
 
   async function refresh() {
     setRefreshing(true);
@@ -176,22 +184,16 @@ function HomePage() {
               <span className="block truncate font-display text-[17px] font-bold tracking-tight text-[#643100]">
                 Tagna-Ani
               </span>
-              <span className="block truncate text-[9px] font-bold uppercase tracking-wider text-[#7F3E00]">
-                Mindanao Smart Farming
-              </span>
+              <span className="block truncate text-[9px] font-bold uppercase tracking-wider text-[#7F3E00]">{t("Mindanao Smart Farming")}</span>
             </div>
           </div>
         </div>
         <div className="mt-2 flex gap-3 text-xs font-semibold">
-          <Link to="/" className="underline">User guides</Link>
+          <Link to="/" className="underline">{t("User guides")}</Link>
           {isAdmin && <Link to="/admin" className="underline">Admin</Link>}
         </div>
-        <p className="mt-2 text-[11px] font-bold leading-snug text-[#643100]">
-          Empowering Farmers Through Knowledge and Technology.
-        </p>
-        <p className="text-[10.5px] italic text-[#7F3E00]">
-          Kaalaman at teknolohiya para sa magsasaka.
-        </p>
+        <p className="mt-2 text-[11px] font-bold leading-snug text-[#643100]">{t("Empowering Farmers Through Knowledge and Technology.")}</p>
+        <p className="text-[10.5px] italic text-[#7F3E00]">{t("Kaalaman at teknolohiya para sa magsasaka.")}</p>
       </div>
 
       <header className="flex items-start justify-between gap-2">
@@ -203,7 +205,7 @@ function HomePage() {
             </span>
           </p>
           <h1 className="mt-3 truncate text-[28px] leading-[1.08] text-[#643100]">
-            {greeting()},
+            {t(greeting())},
             <br />
             <span className="italic text-[#643100]">{firstName}.</span>
           </h1>
@@ -214,7 +216,7 @@ function HomePage() {
           <button
             type="button"
             onClick={refresh}
-            aria-label="Refresh weather"
+            aria-label={t("Refresh weather")}
             className="flex h-10 w-10 items-center justify-center rounded-full border border-[#643100]/40 bg-card text-[#643100] transition-transform active:scale-95"
           >
             <RefreshCw className={`h-[16px] w-[16px] ${refreshing ? "animate-spin" : ""}`} strokeWidth={1.9} />
@@ -225,7 +227,7 @@ function HomePage() {
             trigger={
               <button
                 type="button"
-                aria-label="Open notifications"
+                aria-label={t("Open notifications")}
                 className="relative flex h-10 w-10 items-center justify-center rounded-full border border-[#643100]/40 bg-card text-[#643100] transition-transform active:scale-95"
               >
                 <Bell className="h-[17px] w-[17px]" strokeWidth={1.9} />
@@ -250,33 +252,29 @@ function HomePage() {
 
           <section className="mt-8">
             <div className="mb-3 flex items-baseline justify-between">
-              <h3 className="eyebrow">Weather · 7 days</h3>
-              <span className="text-[11px] text-[#7F3E00]">Updated {insights.updated}</span>
+              <h3 className="eyebrow">{t("Weather · 7 days")}</h3>
+              <span className="text-[11px] text-[#7F3E00]">{t("Updated") + " "}{insights.updated}</span>
             </div>
             <WeatherTimeline daily={weather.daily} />
           </section>
 
           <section className="mt-8">
-            <h3 className="eyebrow mb-3">Field conditions</h3>
+            <h3 className="eyebrow mb-3">{t("Field conditions")}</h3>
             <MetricsGrid current={weather.current} pestScore={insights.pest} />
           </section>
 
-          <RotationPlanner plan={plan} loading={planLoading} city={profile.city} irrigated={irrigated}
+          <RotationPlanner plan={plan} loading={planLoading} profile={profile} username={sessionUser.username} irrigated={irrigated}
             onIrrigationChange={setIrrigated} onEditCrops={() => navigate({ to: "/onboarding" })} />
 
           <section className="mt-8">
-            <h3 className="eyebrow mb-3">From your records</h3>
+            <h3 className="eyebrow mb-3">{t("From your records")}</h3>
             <CropAdvice advice={insights.advice} />
           </section>
 
           <div className="mt-8 text-center">
             <p className="font-display text-[13px] font-bold text-[#643100]">Tagna-Ani</p>
-            <p className="mt-0.5 text-[10.5px] font-semibold text-[#643100]">
-              Empowering Farmers Through Knowledge and Technology.
-            </p>
-            <p className="text-[10px] italic text-[#7F3E00]">
-              Kaalaman at teknolohiya para sa magsasaka.
-            </p>
+            <p className="mt-0.5 text-[10.5px] font-semibold text-[#643100]">{t("Empowering Farmers Through Knowledge and Technology.")}</p>
+            <p className="text-[10px] italic text-[#7F3E00]">{t("Kaalaman at teknolohiya para sa magsasaka.")}</p>
           </div>
         </>
       )}

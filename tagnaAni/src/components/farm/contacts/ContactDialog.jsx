@@ -1,3 +1,4 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CONTACT_ROLES } from "@/lib/contacts";
@@ -21,6 +22,7 @@ function blank() {
 }
 
 export default function ContactDialog({ open, onOpenChange, onSubmit, initial }) {
+  const { t } = useSiteLanguage();
   const [form, setForm] = useState(blank());
 
   useEffect(() => {
@@ -50,13 +52,13 @@ export default function ContactDialog({ open, onOpenChange, onSubmit, initial })
       <DialogContent className="max-h-[90vh] max-w-[400px] overflow-y-auto rounded-[1.5rem]">
         <DialogHeader>
           <DialogTitle className="font-display text-[21px]">
-            {initial?.id ? "Edit contact" : "New contact"}
+            {initial?.id ? t("Edit contact") : t("New contact")}
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={submit} className="space-y-3.5">
           <div>
-            <label className={LABEL}>Name</label>
+            <label className={LABEL}>{t("Name")}</label>
             <input
               value={form.name}
               onChange={set("name")}
@@ -67,17 +69,17 @@ export default function ContactDialog({ open, onOpenChange, onSubmit, initial })
 
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className={LABEL}>Connected as</label>
+              <label className={LABEL}>{t("Connected as")}</label>
               <select value={form.role} onChange={set("role")} className={FIELD}>
                 {CONTACT_ROLES.map((r) => (
                   <option key={r.value} value={r.value}>
-                    {r.label}
+                    {t(r.label)}
                   </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className={LABEL}>Phone</label>
+              <label className={LABEL}>{t("Phone")}</label>
               <input
                 value={form.phone}
                 onChange={set("phone")}
@@ -90,21 +92,21 @@ export default function ContactDialog({ open, onOpenChange, onSubmit, initial })
 
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className={LABEL}>Business</label>
+              <label className={LABEL}>{t("Business")}</label>
               <input
                 value={form.organization}
                 onChange={set("organization")}
-                placeholder="Optional"
+                placeholder={t("Optional")}
                 className={FIELD}
               />
             </div>
             <div>
-              <label className={LABEL}>Place</label>
+              <label className={LABEL}>{t("Place")}</label>
               <input
                 value={form.location}
                 onChange={set("location")}
                 list="contact-locations"
-                placeholder="Municipality"
+                placeholder={t("Municipality")}
                 className={FIELD}
               />
               <datalist id="contact-locations">
@@ -116,21 +118,21 @@ export default function ContactDialog({ open, onOpenChange, onSubmit, initial })
           </div>
 
           <div>
-            <label className={LABEL}>Supplies</label>
+            <label className={LABEL}>{t("Supplies")}</label>
             <input
               value={form.supplies}
               onChange={set("supplies")}
-              placeholder="Certified rice seeds"
+              placeholder={t("Certified rice seeds")}
               className={FIELD}
             />
           </div>
 
           <div>
-            <label className={LABEL}>Note</label>
+            <label className={LABEL}>{t("Note")}</label>
             <input
               value={form.notes}
               onChange={set("notes")}
-              placeholder="Delivers every Tuesday"
+              placeholder={t("Delivers every Tuesday")}
               className={FIELD}
             />
           </div>
@@ -140,7 +142,7 @@ export default function ContactDialog({ open, onOpenChange, onSubmit, initial })
             disabled={!form.name.trim()}
             className="mt-1 w-full rounded-2xl bg-primary py-3.5 text-[12px] font-semibold uppercase tracking-[0.14em] text-primary-foreground disabled:opacity-40"
           >
-            {initial?.id ? "Save changes" : "Add contact"}
+            {initial?.id ? t("Save changes") : t("Add contact")}
           </button>
         </form>
       </DialogContent>

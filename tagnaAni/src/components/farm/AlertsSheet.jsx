@@ -1,3 +1,4 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertTriangle, CloudRain, Sun } from "lucide-react";
 
@@ -8,16 +9,17 @@ const TONE = {
 };
 
 export default function AlertsSheet({ alerts = [], trigger }) {
+  const { t } = useSiteLanguage();
   return (
     <Dialog>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-w-[400px] rounded-[1.5rem]">
         <DialogHeader>
-          <DialogTitle className="font-display text-[22px]">Field notifications</DialogTitle>
+          <DialogTitle className="font-display text-[22px]">{t("Field notifications")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-2.5">
           {alerts.length === 0 && (
-            <p className="text-[13px] text-muted-foreground">No weather alerts for the days ahead.</p>
+            <p className="text-[13px] text-muted-foreground">{t("No weather alerts for the days ahead.")}</p>
           )}
           {alerts.map((a) => {
             const tone = TONE[a.tone] || TONE.warn;

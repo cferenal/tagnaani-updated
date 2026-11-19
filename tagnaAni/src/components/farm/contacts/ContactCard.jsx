@@ -1,3 +1,4 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 import { ArrowRight, CheckCircle2, MapPin, Package, Pencil, Phone, Trash2 } from "lucide-react";
 import { avatarTone, initials, roleLabel, telHref } from "@/lib/contacts";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,7 @@ function InfoBox({ icon: Icon, label, value }) {
 }
 
 export default function ContactCard({ contact, onEdit, onDelete }) {
+  const { t } = useSiteLanguage();
   const call = telHref(contact.phone);
 
   return (
@@ -43,7 +45,7 @@ export default function ContactCard({ contact, onEdit, onDelete }) {
               <button
                 type="button"
                 onClick={() => onEdit(contact)}
-                aria-label={`Edit ${contact.name}`}
+                aria-label={t("Edit {name}", { name: contact.name })}
                 className="flex h-7 w-7 items-center justify-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:text-foreground"
               >
                 <Pencil className="h-3 w-3" strokeWidth={1.9} />
@@ -51,7 +53,7 @@ export default function ContactCard({ contact, onEdit, onDelete }) {
               <button
                 type="button"
                 onClick={() => onDelete(contact.id)}
-                aria-label={`Remove ${contact.name}`}
+                aria-label={t("Remove {name}", { name: contact.name })}
                 className="flex h-7 w-7 items-center justify-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:text-destructive"
               >
                 <Trash2 className="h-3 w-3" strokeWidth={1.9} />
@@ -76,33 +78,27 @@ export default function ContactCard({ contact, onEdit, onDelete }) {
       <div className="mt-3 grid grid-cols-2 gap-2">
         <InfoBox
           icon={Package}
-          label="Supplies"
+          label={t("Supplies")}
           value={contact.supplies || contact.organization || "—"}
         />
-        <InfoBox icon={Phone} label="Phone" value={contact.phone || "Not saved"} />
+        <InfoBox icon={Phone} label={t("Phone")} value={contact.phone || t("Not saved")} />
       </div>
 
       <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/60 pt-3">
         <div className="min-w-0">
-          <p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-            Note
-          </p>
+          <p className="text-[9px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{t("Note")}</p>
           <p className="mt-0.5 truncate text-[12px] text-muted-foreground">
-            {contact.notes || "No note yet"}
+            {contact.notes || t("No note yet")}
           </p>
         </div>
         {call ? (
           <a
             href={call}
             className="olive-solid inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[11.5px] font-semibold transition-transform active:scale-95"
-          >
-            Call
-            <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />
+          >{t("Call")}<ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />
           </a>
         ) : (
-          <span className="shrink-0 rounded-full bg-muted px-3.5 py-2 text-[11.5px] font-semibold text-muted-foreground">
-            No number
-          </span>
+          <span className="shrink-0 rounded-full bg-muted px-3.5 py-2 text-[11.5px] font-semibold text-muted-foreground">{t("No number")}</span>
         )}
       </div>
     </article>

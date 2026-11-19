@@ -1,6 +1,8 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 import { Sprout } from "lucide-react";
 
 export default function CropAdvice({ advice = [] }) {
+  const { t } = useSiteLanguage();
   if (!advice.length) return null;
   return (
     <div className="space-y-2.5">
@@ -12,7 +14,7 @@ export default function CropAdvice({ advice = [] }) {
             </span>
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-accent-foreground/60">
-                {item.tag || "Crop advice"}
+                {item.tag || t("Crop advice")}
               </p>
               <p className="mt-1 font-display text-[16px] leading-snug">{item.title}</p>
               <p className="mt-1.5 text-[12.5px] leading-relaxed text-muted-foreground">{item.body}</p>

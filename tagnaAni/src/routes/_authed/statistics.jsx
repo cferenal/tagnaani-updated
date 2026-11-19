@@ -1,3 +1,4 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
 
 import { useCallback, useEffect, useState } from "react";
@@ -17,6 +18,7 @@ export const Route = createFileRoute("/_authed/statistics")({
 });
 
 function StatisticsPage() {
+  const { t } = useSiteLanguage();
   const { user, isLoadingAuth } = useAuth();
   const uid = user?.id || "device";
 
@@ -57,8 +59,8 @@ function StatisticsPage() {
     <div className="px-5 pt-9">
       <PageHeader
         eyebrow="Money · saved on device"
-        title="Statistics"
-        subtitle="Every peso you logged, added up even without signal."
+        title={t("Statistics")}
+        subtitle={t("Every peso you logged, added up even without signal.")}
       />
 
       {offline && <OfflineNotice className="mt-4" />}
@@ -68,18 +70,15 @@ function StatisticsPage() {
       {stats.rows.length > 0 ? (
         <div className="mt-8">
           <MoneyBreakdown
-            title="Where the money goes"
+            title={t("Where the money goes")}
             note={`${formatPeso(stats.expense)} · ${stats.entries} entries`}
             rows={stats.rows}
           />
         </div>
       ) : ready ? (
         <div className="mt-8 rounded-[1.5rem] border border-dashed border-border/80 bg-card/50 p-6 text-center">
-          <p className="font-display text-[17px]">No money entries yet</p>
-          <p className="mx-auto mt-2 max-w-[250px] text-[12.5px] leading-relaxed text-muted-foreground">
-            Log fertilizer, seeds and every sale in Records. Your totals and this breakdown build themselves, online
-            or offline.
-          </p>
+          <p className="font-display text-[17px]">{t("No money entries yet")}</p>
+          <p className="mx-auto mt-2 max-w-[250px] text-[12.5px] leading-relaxed text-muted-foreground">{t("Log fertilizer, seeds and every sale in Records. Your totals and this breakdown build themselves, online or offline.")}</p>
         </div>
       ) : (
         <div className="mt-8 space-y-2.5">
@@ -88,9 +87,7 @@ function StatisticsPage() {
         </div>
       )}
 
-      <p className="mt-8 text-center text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">
-        Totals follow the entries saved on this device
-      </p>
+      <p className="mt-8 text-center text-[10px] uppercase tracking-[0.14em] text-muted-foreground/70">{t("Totals follow the entries saved on this device")}</p>
     </div>
   );
 }

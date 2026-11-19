@@ -1,3 +1,4 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -24,20 +25,21 @@ export function MfaFlow({ challenge, returnTo, onManage }) {
 }
 
 function Enroll({ session, onDone }) {
+  const { t } = useSiteLanguage();
   const [method, setMethod] = useState(null);
   const info = useAppInfo();
   return (
     <>
       <MfaHeader
         title={info && `${info.name || "This app"} requires multi-factor authentication`}
-        description={method ? null : "Add a second sign-in step to keep your account secure. Choose how you want to get your codes."}
+        description={method ? null : t("Add a second sign-in step to keep your account secure. Choose how you want to get your codes.")}
       />
       {method ? (
         <MfaMethodSetup session={session} method={method} onDone={onDone} onBack={() => setMethod(null)} />
       ) : (
         <div className="space-y-3">
-          <Button className="w-full h-12 font-medium" onClick={() => setMethod("totp")}>Set up your authenticator app</Button>
-          <Button variant="outline" className="w-full h-12 font-medium" onClick={() => setMethod("sms")}>Enter your phone number</Button>
+          <Button className="w-full h-12 font-medium" onClick={() => setMethod("totp")}>{t("Set up your authenticator app")}</Button>
+          <Button variant="outline" className="w-full h-12 font-medium" onClick={() => setMethod("sms")}>{t("Enter your phone number")}</Button>
         </div>
       )}
     </>
@@ -45,6 +47,7 @@ function Enroll({ session, onDone }) {
 }
 
 function Verify({ session, challenge, returnTo, onDone }) {
+  const { t } = useSiteLanguage();
   const methods = challenge.mfa_methods;
   const [method, setMethod] = useState(methods.includes("totp") ? "totp" : "sms");
   const [code, setCode] = useState("");
@@ -92,27 +95,27 @@ function Verify({ session, challenge, returnTo, onDone }) {
   const other = methods.find((value) => value !== method);
   return (
     <>
-      <MfaHeader title="Verify your identity" />
+      <MfaHeader title={t("Verify your identity")} />
       <div className="space-y-4">
         <MfaNotice error={error} />
         <p className="text-sm text-muted-foreground text-center">
-          {method === "totp" ? "Enter the code from your authenticator app"
+          {method === "totp" ? t("Enter the code from your authenticator app")
             : sending && !cooldown ? `Sending code to ${phone}…` : `Enter the code sent to ${phone}`}
         </p>
         <CodeField id="mfa-code" value={code} onChange={setCode} onComplete={verify} />
         <RememberDevice checked={remember} onChange={setRemember} />
         <Button className="w-full h-12 font-medium" disabled={busy || code.length < 6} onClick={() => verify()}>
           {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-          {busy ? "Verifying..." : "Verify"}
+          {busy ? t("Verifying...") : t("Verify")}
         </Button>
         {method === "sms" && <ResendLine cooldown={cooldown} disabled={sending} onResend={sendCode} />}
         {other && (
           <Button variant="outline" className="w-full" onClick={() => { setMethod(other); setCode(""); setError(null); }}>
-            {other === "sms" ? "Verify via Text Message" : "Verify via Authenticator App"}
+            {other === "sms" ? t("Verify via Text Message") : t("Verify via Authenticator App")}
           </Button>
         )}
         <div className="text-center">
-          <a href={returnTo && returnTo !== "/" ? "/login?returnTo=" + encodeURIComponent(returnTo) : "/login"} className="text-sm text-muted-foreground hover:underline">Back to Login</a>
+          <a href={returnTo && returnTo !== "/" ? "/login?returnTo=" + encodeURIComponent(returnTo) : "/login"} className="text-sm text-muted-foreground hover:underline">{t("Back to Login")}</a>
         </div>
       </div>
     </>

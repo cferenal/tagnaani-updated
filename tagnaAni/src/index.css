@@ -95,7 +95,7 @@
 }
 
 .app-viewport {
-  height: 100dvh;
+  height: 100%;
   overflow-y: auto;
   background: #D49961;
 }
@@ -244,7 +244,7 @@
   transform-origin: left center;
 }
 .public-scroll {
-  height: 100dvh;
+  height: 100%;
   overflow-y: auto;
   background: #f6e6d4;
 }

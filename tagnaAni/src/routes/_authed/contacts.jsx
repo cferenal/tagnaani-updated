@@ -1,3 +1,4 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
 
 import { useCallback, useEffect, useState } from "react";
@@ -28,6 +29,7 @@ function matches(contact, query) {
 }
 
 function ContactsPage() {
+  const { t } = useSiteLanguage();
   const { user, isLoadingAuth } = useAuth();
   const uid = user?.id || "device";
 
@@ -122,16 +124,14 @@ function ContactsPage() {
       <div className="px-5">
         <div className="mt-5 flex items-end justify-between gap-3">
           <div>
-            <h2 className="text-[19px] leading-none text-olive-ink">Your network</h2>
+            <h2 className="text-[19px] leading-none text-olive-ink">{t("Your network")}</h2>
             <p className="mt-1.5 text-[11.5px] text-muted-foreground">
-              {contacts.length} {contacts.length === 1 ? "contact" : "contacts"} · {suppliers}{" "}
-              {suppliers === 1 ? "supplier" : "suppliers"}
+              {contacts.length} {contacts.length === 1 ? t("contact") : t("contacts")} · {suppliers}{" "}
+              {suppliers === 1 ? t("supplier") : t("suppliers")}
             </p>
           </div>
           <span className="olive-chip inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[9.5px] font-semibold uppercase tracking-[0.1em]">
-            <span className="h-1.5 w-1.5 rounded-full bg-olive" />
-            In your circle
-          </span>
+            <span className="h-1.5 w-1.5 rounded-full bg-olive" />{t("In your circle")}</span>
         </div>
 
         {offline && <OfflineNotice className="mt-4" />}
@@ -148,12 +148,12 @@ function ContactsPage() {
         ) : visible.length === 0 ? (
           <div className="mt-4 rounded-[1.35rem] border border-dashed border-border bg-card/60 p-6 text-center">
             <p className="font-display text-[17px]">
-              {contacts.length === 0 ? "No contacts yet" : "No one matches that search"}
+              {contacts.length === 0 ? t("No contacts yet") : t("No one matches that search")}
             </p>
             <p className="mx-auto mt-2 max-w-[250px] text-[12.5px] leading-relaxed text-muted-foreground">
               {contacts.length === 0
-                ? "Save your seed and fertilizer suppliers, your buyer and the technician you call — numbers and terms stay on this device, offline too."
-                : "Try another name, supplier type or place."}
+                ? t("Save your seed and fertilizer suppliers, your buyer and the technician you call — numbers and terms stay on this device, offline too.")
+                : t("Try another name, supplier type or place.")}
             </p>
           </div>
         ) : (
@@ -172,9 +172,7 @@ function ContactsPage() {
           </div>
         )}
 
-        <p className="mt-8 text-center text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
-          Contacts save on this device first
-        </p>
+        <p className="mt-8 text-center text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">{t("Contacts save on this device first")}</p>
       </div>
 
       <ContactDialog

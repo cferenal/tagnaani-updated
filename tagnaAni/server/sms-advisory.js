@@ -5,6 +5,7 @@ import { forecast, monthlyClimate } from "./sms-weather.js";
 
 const copy = {
   ENG: {
+    crop: "Your current crop", problem: "Your number 1 problem", weather: "Weather",
     greeting: "Good day, Ka-Ani!", local: "Farm conditions in", temp: "Temperature", heat: "Heat index",
     humidity: "Humidity", rain: "Precipitation", rainChance: "% chance today", now: "now", nextHour: "in the next hour",
     solar: "Solar radiation", unavailable: "unavailable", historical: "monthly average",
@@ -19,6 +20,7 @@ const copy = {
     conditions: ["clear", "partly cloudy", "overcast", "fog", "rain", "thunderstorm"],
   },
   BIS: {
+    crop: "Imong tanom karon", problem: "Imong nag-unang problema", weather: "Panahon",
     greeting: "Maayong adlaw, Ka-Ani!", local: "Mga kondisyon sa uma sa", temp: "Temperatura", heat: "Heat index",
     humidity: "Kaumog sa hangin", rain: "Ulan", rainChance: "% posibilidad karon", now: "karon", nextHour: "sa sunod oras",
     solar: "Radiation sa adlaw", unavailable: "walay datos", historical: "binulang aberids",
@@ -33,6 +35,7 @@ const copy = {
     conditions: ["hayag", "medyo dag-om", "dag-om", "gabon", "ulan", "dalugdog"],
   },
   TAG: {
+    crop: "Kasalukuyan mong pananim", problem: "Pangunahing problema mo", weather: "Panahon",
     greeting: "Magandang araw, Ka-Ani!", local: "Kalagayan ng bukid sa", temp: "Temperatura", heat: "Heat index",
     humidity: "Halumigmig", rain: "Pag-ulan", rainChance: "% posibilidad ngayong araw", now: "ngayon", nextHour: "sa susunod na oras",
     solar: "Radyasyon ng araw", unavailable: "walang datos", historical: "buwanang average",
@@ -110,7 +113,10 @@ export async function advisory({ city, locality, crop, problem, lang, lat, lon, 
     words.greeting,
     "",
     `${words.local} ${[locality || city, location?.province].filter(Boolean).join(", ")}.`,
-    locality ? `Weather: ${city}` : null,
+    locality ? `${words.weather}: ${city}` : null,
+    `${words.crop}: ${crop}`,
+    `${words.problem}: ${problem}`,
+    "",
     `${words.temp}: ${show(wx.temp, " C")}`,
     `${words.heat}: ${show(heat, " C")}`,
     `${words.humidity}: ${show(wx.humidity, "%")}`,
@@ -118,9 +124,11 @@ export async function advisory({ city, locality, crop, problem, lang, lat, lon, 
     `${words.solar}: ${show(wx.radiation, " W/m^2")}${weatherNote ? `, ${weatherNote}` : ""}`,
     `${words.root}: ${number(wetness) ? `${Math.round(wetness * 100)}% (${words.historical})` : words.unavailable}`,
     "",
-    `${words.advice} (${crop} - ${problem}): ${tip}${weatherAdvice ? " " + weatherAdvice : ""}`,
+    `${words.advice}: ${tip}${weatherAdvice ? " " + weatherAdvice : ""}`,
     `${words.rotation}: ${rotation || words.unavailable}`,
+    "",
     words.reminder,
-    `Tagna-Ani App (Generated: ${generated} PHT)`,
+    "",
+    `Powered by Tagna-Ani App (Generated: ${generated} PHT)`,
   ].filter((line) => line != null).join("\n");
 }

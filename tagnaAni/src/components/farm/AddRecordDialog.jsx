@@ -1,3 +1,4 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CROPS, EXPENSE_CATEGORIES, todayKey } from "@/lib/farmData";
@@ -23,6 +24,7 @@ function blank() {
 }
 
 export default function AddRecordDialog({ open, onOpenChange, onSubmit, initial }) {
+  const { t } = useSiteLanguage();
   const [tab, setTab] = useState("crop");
   const [form, setForm] = useState(blank());
 
@@ -90,7 +92,7 @@ export default function AddRecordDialog({ open, onOpenChange, onSubmit, initial 
       <DialogContent className="max-h-[90vh] max-w-[400px] overflow-y-auto rounded-[1.5rem]">
         <DialogHeader>
           <DialogTitle className="font-display text-[21px]">
-            {isEdit ? "Edit entry" : "New record"}
+            {isEdit ? t("Edit entry") : t("New record")}
           </DialogTitle>
         </DialogHeader>
 
@@ -98,17 +100,17 @@ export default function AddRecordDialog({ open, onOpenChange, onSubmit, initial 
           {[
             { value: "crop", label: "Crop cycle" },
             { value: "money", label: "Money" },
-          ].map((t) => (
+          ].map((option) => (
             <button
-              key={t.value}
+              key={option.value}
               type="button"
-              onClick={() => setTab(t.value)}
+              onClick={() => setTab(option.value)}
               className={cn(
                 "flex-1 rounded-full py-2 text-[11.5px] font-semibold uppercase tracking-[0.1em] transition-colors",
-                tab === t.value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground",
+                tab === option.value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground",
               )}
             >
-              {t.label}
+              {t(option.label)}
             </button>
           ))}
         </div>
@@ -117,30 +119,30 @@ export default function AddRecordDialog({ open, onOpenChange, onSubmit, initial 
           {tab === "crop" ? (
             <>
               <div>
-                <label className={LABEL}>Crop</label>
+                <label className={LABEL}>{t("Crop")}</label>
                 <select value={form.crop} onChange={set("crop")} className={FIELD}>
                   {CROPS.map((c) => (
                     <option key={c} value={c}>
-                      {c}
+                      {t(c)}
                     </option>
                   ))}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-2.5">
                 <div>
-                  <label className={LABEL}>Seeds planted</label>
+                  <label className={LABEL}>{t("Seeds planted")}</label>
                   <input value={form.planted_seeds} onChange={set("planted_seeds")} inputMode="numeric" placeholder="0" className={FIELD} />
                 </div>
                 <div>
-                  <label className={LABEL}>Standing plants</label>
+                  <label className={LABEL}>{t("Standing plants")}</label>
                   <input value={form.current_crop_count} onChange={set("current_crop_count")} inputMode="numeric" placeholder="0" className={FIELD} />
                 </div>
                 <div>
-                  <label className={LABEL}>Seed stock</label>
+                  <label className={LABEL}>{t("Seed stock")}</label>
                   <input value={form.stored_seeds} onChange={set("stored_seeds")} inputMode="numeric" placeholder="0" className={FIELD} />
                 </div>
                 <div>
-                  <label className={LABEL}>Harvest (kg)</label>
+                  <label className={LABEL}>{t("Harvest (kg)")}</label>
                   <input value={form.harvest_kg} onChange={set("harvest_kg")} inputMode="decimal" placeholder="0" className={FIELD} />
                 </div>
               </div>
@@ -163,32 +165,32 @@ export default function AddRecordDialog({ open, onOpenChange, onSubmit, initial 
                         : "border-border text-muted-foreground",
                     )}
                   >
-                    {k.label}
+                    {t(k.label)}
                   </button>
                 ))}
               </div>
               <div className="grid grid-cols-2 gap-2.5">
                 <div>
-                  <label className={LABEL}>Category</label>
+                  <label className={LABEL}>{t("Category")}</label>
                   <select value={form.category} onChange={set("category")} className={FIELD}>
                     {EXPENSE_CATEGORIES.map((c) => (
                       <option key={c} value={c}>
-                        {c}
+                        {t(c)}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className={LABEL}>Amount (₱)</label>
+                  <label className={LABEL}>{t("Amount (₱)")}</label>
                   <input value={form.amount} onChange={set("amount")} inputMode="decimal" placeholder="0" className={FIELD} />
                 </div>
               </div>
               <div>
-                <label className={LABEL}>Crop</label>
+                <label className={LABEL}>{t("Crop")}</label>
                 <select value={form.crop} onChange={set("crop")} className={FIELD}>
                   {CROPS.map((c) => (
                     <option key={c} value={c}>
-                      {c}
+                      {t(c)}
                     </option>
                   ))}
                 </select>
@@ -198,12 +200,12 @@ export default function AddRecordDialog({ open, onOpenChange, onSubmit, initial 
 
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className={LABEL}>Date</label>
+              <label className={LABEL}>{t("Date")}</label>
               <input type="date" value={form.date} onChange={set("date")} className={FIELD} />
             </div>
             <div>
-              <label className={LABEL}>Note</label>
-              <input value={form.notes} onChange={set("notes")} placeholder="Optional" className={FIELD} />
+              <label className={LABEL}>{t("Note")}</label>
+              <input value={form.notes} onChange={set("notes")} placeholder={t("Optional")} className={FIELD} />
             </div>
           </div>
 
@@ -212,7 +214,7 @@ export default function AddRecordDialog({ open, onOpenChange, onSubmit, initial 
             disabled={disabled}
             className="mt-1 w-full rounded-2xl bg-primary py-3.5 text-[12px] font-semibold uppercase tracking-[0.14em] text-primary-foreground disabled:opacity-40"
           >
-            {isEdit ? "Save changes" : "Add record"}
+            {isEdit ? t("Save changes") : t("Add record")}
           </button>
         </form>
       </DialogContent>

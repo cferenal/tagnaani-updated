@@ -1,3 +1,4 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 import "@/api/base44Client";
 import { useCallback, useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -23,6 +24,7 @@ function Chip({ children }) {
 }
 
 function ProfilePage() {
+  const { t } = useSiteLanguage();
   const { user, isLoadingAuth, logout } = useAuth();
   const currentUser = getSessionUser() || user;
   const uid = currentUser?.id || "device";
@@ -64,14 +66,14 @@ function ProfilePage() {
     <div className="px-5 pt-9">
       <PageHeader
         eyebrow="Tagna-Ani · Your farm"
-        title="Profile"
-        subtitle="Empowering Farmers Through Knowledge and Technology. Kaalaman at teknolohiya para sa magsasaka."
+        title={t("Profile")}
+        subtitle={t("Empowering Farmers Through Knowledge and Technology. Kaalaman at teknolohiya para sa magsasaka.")}
         action={
           profile && (
             <button
               type="button"
               onClick={() => setEditing(true)}
-              aria-label="Edit profile"
+              aria-label={t("Edit profile")}
               className="flex h-11 w-11 items-center justify-center rounded-full border border-[#643100] bg-[#EACAAE] text-[#643100]"
             >
               <Pencil className="h-4 w-4" strokeWidth={1.9} />
@@ -84,16 +86,12 @@ function ProfilePage() {
 
       {!profile ? (
         <div className="mt-6 rounded-[1.35rem] border border-dashed border-[#643100]/40 bg-card/80 p-6 text-center">
-          <p className="font-display text-[18px] text-[#643100]">No farm profile yet</p>
-          <p className="mx-auto mt-2 max-w-[260px] text-[12.5px] leading-relaxed text-[#7F3E00]">
-            Tell us where your farm is and what you grow so the advice fits your land.
-          </p>
+          <p className="font-display text-[18px] text-[#643100]">{t("No farm profile yet")}</p>
+          <p className="mx-auto mt-2 max-w-[260px] text-[12.5px] leading-relaxed text-[#7F3E00]">{t("Tell us where your farm is and what you grow so the advice fits your land.")}</p>
           <Link
             to="/onboarding"
             className="mt-4 inline-flex rounded-full border border-[#643100] bg-[#EACAAE] px-5 py-2.5 text-[11.5px] font-bold uppercase tracking-[0.12em] text-[#643100]"
-          >
-            Set up profiling
-          </Link>
+          >{t("Set up profiling")}</Link>
         </div>
       ) : (
         <>
@@ -103,7 +101,7 @@ function ProfilePage() {
                 {profile.region || "Mindanao"}
               </p>
               <span className="rounded-full border border-[#643100]/30 bg-card px-2.5 py-0.5 text-[10px] font-bold text-[#643100]">
-                @{currentUser?.username || "farmer"}
+                @{currentUser?.username || t("farmer")}
               </span>
             </div>
             <h2 className="mt-2 text-[26px] font-bold leading-tight text-[#643100]">
@@ -119,30 +117,29 @@ function ProfilePage() {
             </p>
             <div className="mt-4 flex items-center gap-2 border-t border-[#643100]/20 pt-3.5 text-[12.5px] font-semibold text-[#643100]">
               <Ruler className="h-4 w-4 text-[#643100]" strokeWidth={1.8} />
-              {profile.farm_size || 0} hectares under management
-            </div>
+              {profile.farm_size || 0}{" " + t("hectares under management")}</div>
           </div>
 
           <section className="mt-7">
-            <h3 className="eyebrow mb-3">Crops</h3>
+            <h3 className="eyebrow mb-3">{t("Crops")}</h3>
             <div className="flex flex-wrap gap-1.5">
               {(profile.crops || []).map((crop) => (
-                <Chip key={crop}>{crop}</Chip>
+                <Chip key={crop}>{t(crop)}</Chip>
               ))}
               {(profile.crops || []).length === 0 && (
-                <p className="text-[12.5px] text-[#7F3E00]">No crops added yet.</p>
+                <p className="text-[12.5px] text-[#7F3E00]">{t("No crops added yet.")}</p>
               )}
             </div>
           </section>
 
           <section className="mt-6">
-            <h3 className="eyebrow mb-3">Challenges</h3>
+            <h3 className="eyebrow mb-3">{t("Challenges")}</h3>
             <div className="flex flex-wrap gap-1.5">
               {(profile.problems || []).map((problem) => (
-                <Chip key={problem}>{problem}</Chip>
+                <Chip key={problem}>{t(problem)}</Chip>
               ))}
               {(profile.problems || []).length === 0 && (
-                <p className="text-[12.5px] text-[#7F3E00]">Nothing flagged.</p>
+                <p className="text-[12.5px] text-[#7F3E00]">{t("Nothing flagged.")}</p>
               )}
             </div>
           </section>
@@ -157,9 +154,7 @@ function ProfilePage() {
         />
         <div>
           <p className="font-display text-[15px] font-bold text-[#643100]">Tagna-Ani</p>
-          <p className="mt-0.5 text-[11.5px] leading-relaxed text-[#7F3E00]">
-            Empowering Farmers Through Knowledge and Technology. Kaalaman at teknolohiya para sa magsasaka.
-          </p>
+          <p className="mt-0.5 text-[11.5px] leading-relaxed text-[#7F3E00]">{t("Empowering Farmers Through Knowledge and Technology. Kaalaman at teknolohiya para sa magsasaka.")}</p>
         </div>
       </div>
 
@@ -168,9 +163,7 @@ function ProfilePage() {
         onClick={() => logout()}
         className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-[#643100] bg-[#EACAAE] py-3.5 text-[12px] font-bold uppercase tracking-[0.14em] text-[#643100] transition-transform active:scale-98"
       >
-        <LogOut className="h-4 w-4" strokeWidth={2} />
-        Log out
-      </button>
+        <LogOut className="h-4 w-4" strokeWidth={2} />{t("Log out")}</button>
 
       {profile && (
         <ProfileEditor

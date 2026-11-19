@@ -1,3 +1,4 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 import "@/api/base44Client";
 import { useEffect, useState } from "react";
 import { Check, ChevronLeft } from "lucide-react";
@@ -27,6 +28,7 @@ const FIELD =
   "w-full rounded-xl border border-[#643100]/45 bg-[#EACAAE] px-3.5 py-3 text-[15px] text-[#643100] placeholder:text-[#7F3E00]/65 outline-none focus:border-[#643100] focus:ring-2 focus:ring-[#643100]/25";
 
 function OnboardingPage() {
+  const { t } = useSiteLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
   const sessionUser = getSessionUser() || user;
@@ -119,7 +121,7 @@ function OnboardingPage() {
               type="button"
               onClick={() => setStep((s) => s - 1)}
               className="flex h-10 w-10 items-center justify-center rounded-full border border-[#643100] bg-[#EACAAE] text-[#643100]"
-              aria-label="Back"
+              aria-label={t("Back")}
             >
               <ChevronLeft className="h-4 w-4" strokeWidth={2.2} />
             </button>
@@ -133,9 +135,7 @@ function OnboardingPage() {
             <span className="block font-display text-[16px] font-bold leading-none text-[#643100]">
               Tagna-Ani
             </span>
-            <span className="text-[9.5px] font-bold uppercase tracking-[0.18em] text-[#7F3E00]">
-              Farm profiling
-            </span>
+            <span className="text-[9.5px] font-bold uppercase tracking-[0.18em] text-[#7F3E00]">{t("Farm profiling")}</span>
           </div>
         </div>
         <div className="flex gap-1.5">
@@ -152,35 +152,30 @@ function OnboardingPage() {
       </div>
 
       <p className="mt-3 text-[11px] text-[#7F3E00]">
-        <strong className="text-[#643100]">Empowering Farmers Through Knowledge and Technology.</strong>{" "}
-        <span className="italic">Kaalaman at teknolohiya para sa magsasaka.</span>
+        <strong className="text-[#643100]">{t("Empowering Farmers Through Knowledge and Technology.")}</strong>{" "}
+        <span className="italic">{t("Kaalaman at teknolohiya para sa magsasaka.")}</span>
       </p>
 
       <div className="mt-8">
-        <p className="eyebrow">
-          Step {step + 1} of {STEPS.length}
+        <p className="eyebrow">{t("Step") + " "}{step + 1}{" " + t("of") + " "}{STEPS.length}
         </p>
-        <h1 className="mt-3 text-[32px] leading-[1.1] text-[#643100]">{current.question}</h1>
+        <h1 className="mt-3 text-[32px] leading-[1.1] text-[#643100]">{t(current.question)}</h1>
       </div>
 
       <div className="mt-7 flex-1">
         {step === 0 && (
           <div className="space-y-5">
             <div>
-              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.14em] text-[#643100]">
-                Your name
-              </label>
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.14em] text-[#643100]">{t("Your name")}</label>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Type your name (e.g. Juan dela Cruz)"
+                placeholder={t("Type your name (e.g. Juan dela Cruz)")}
                 className={FIELD}
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.14em] text-[#643100]">
-                Farm location in the Philippines
-              </label>
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.14em] text-[#643100]">{t("Farm location in the Philippines")}</label>
               <LocationPicker value={location} onChange={setLocation} />
             </div>
           </div>
@@ -189,9 +184,7 @@ function OnboardingPage() {
         {step === 1 && (
           <div className="space-y-6">
             <div>
-              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.14em] text-[#643100]">
-                Farm area (hectares)
-              </label>
+              <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-[0.14em] text-[#643100]">{t("Farm area (hectares)")}</label>
               <input
                 value={farmSize}
                 onChange={(e) => setFarmSize(e.target.value.replace(/[^0-9.]/g, ""))}
@@ -201,9 +194,7 @@ function OnboardingPage() {
               />
             </div>
             <div>
-              <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.14em] text-[#643100]">
-                Crops you grow (Select at least 1)
-              </label>
+              <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.14em] text-[#643100]">{t("Crops you grow (Select at least 1)")}</label>
               <CropPicker value={crops} onChange={setCrops} />
             </div>
           </div>
@@ -211,9 +202,7 @@ function OnboardingPage() {
 
         {step === 2 && (
           <div>
-            <p className="mb-3 text-[13px] leading-relaxed text-[#7F3E00]">
-              Choose at least one challenge making farming hard right now. Advice is tuned around it.
-            </p>
+            <p className="mb-3 text-[13px] leading-relaxed text-[#7F3E00]">{t("Choose at least one challenge making farming hard right now. Advice is tuned around it.")}</p>
             <ProblemsPicker value={problems} onChange={setProblems} />
           </div>
         )}
@@ -221,43 +210,43 @@ function OnboardingPage() {
         {step === 3 && (
           <div className="space-y-3">
             <div className="rounded-[1.35rem] border border-border/80 bg-card p-4">
-              <p className="eyebrow">Farmer</p>
+              <p className="eyebrow">{t("Farmer")}</p>
               <p className="mt-2 font-display text-[18px] text-[#643100]">{name || "—"}</p>
             </div>
             <div className="rounded-[1.35rem] border border-border/80 bg-card p-4">
-              <p className="eyebrow">Location</p>
+              <p className="eyebrow">{t("Location")}</p>
               <p className="mt-2 font-display text-[18px] text-[#643100]">{location?.name || "—"}</p>
               <p className="mt-1 text-[12px] text-[#7F3E00]">
                 {location ? [location.province, location.region].filter(Boolean).join(" · ") : ""}
               </p>
             </div>
             <div className="rounded-[1.35rem] border border-border/80 bg-card p-4">
-              <p className="eyebrow">Farm area</p>
-              <p className="mt-2 font-display text-[18px] text-[#643100]">{farmSize || "0"} hectares</p>
+              <p className="eyebrow">{t("Farm area")}</p>
+              <p className="mt-2 font-display text-[18px] text-[#643100]">{farmSize || "0"}{" " + t("hectares")}</p>
             </div>
             <div className="rounded-[1.35rem] border border-border/80 bg-card p-4">
-              <p className="eyebrow">Crops</p>
+              <p className="eyebrow">{t("Crops")}</p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {crops.map((c) => (
                   <span
                     key={c}
                     className="rounded-full bg-[#EACAAE] px-2.5 py-1 text-[11.5px] font-bold text-[#643100]"
                   >
-                    {c}
+                    {t(c)}
                   </span>
                 ))}
               </div>
             </div>
             {problems.length > 0 && (
               <div className="rounded-[1.35rem] border border-border/80 bg-card p-4">
-                <p className="eyebrow">Challenges</p>
+                <p className="eyebrow">{t("Challenges")}</p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {problems.map((p) => (
                     <span
                       key={p}
                       className="rounded-full bg-[#EACAAE] px-2.5 py-1 text-[11.5px] font-bold text-[#643100]"
                     >
-                      {p}
+                      {t(p)}
                     </span>
                   ))}
                 </div>
@@ -266,7 +255,7 @@ function OnboardingPage() {
           </div>
         )}
 
-        {error && <p className="mt-4 text-[12.5px] font-bold text-destructive">{error}</p>}
+        {error && <p className="mt-4 text-[12.5px] font-bold text-destructive">{t(error)}</p>}
       </div>
 
       <div className="mt-6 flex gap-2.5">
@@ -277,9 +266,7 @@ function OnboardingPage() {
             onClick={() => setStep((s) => s - 1)}
             className="flex items-center justify-center gap-1.5 rounded-2xl border-2 border-[#643100] bg-card px-5 py-4 text-[13px] font-bold uppercase tracking-[0.14em] text-[#643100] transition-opacity disabled:opacity-40"
           >
-            <ChevronLeft className="h-4 w-4" strokeWidth={2.4} />
-            Back
-          </button>
+            <ChevronLeft className="h-4 w-4" strokeWidth={2.4} />{t("Back")}</button>
         )}
 
         <button
@@ -288,7 +275,7 @@ function OnboardingPage() {
           onClick={() => (step === STEPS.length - 1 ? finish() : setStep((s) => s + 1))}
           className="flex flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-[#643100] bg-[#EACAAE] py-4 text-[13px] font-bold uppercase tracking-[0.14em] text-[#643100] transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {step === STEPS.length - 1 ? (saving ? "Saving…" : "Start farming") : "Continue"}
+          {step === STEPS.length - 1 ? (saving ? t("Saving…") : t("Start farming")) : t("Continue")}
           {step < STEPS.length - 1 && <Check className="h-4 w-4" strokeWidth={2.4} />}
         </button>
       </div>

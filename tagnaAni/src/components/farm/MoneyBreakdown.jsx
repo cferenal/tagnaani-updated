@@ -1,3 +1,4 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 import useRevealBars from "@/hooks/useRevealBars";
 
 const TINTS = [
@@ -13,6 +14,7 @@ export default function MoneyBreakdown({ title, note, rows = [] }) {
   const ref = useRevealBars();
   if (!rows.length) return null;
 
+  const { t } = useSiteLanguage();
   return (
     <section ref={ref} className="card-soft mbrk p-5">
       <div className="flex items-baseline justify-between gap-3">
@@ -36,9 +38,9 @@ export default function MoneyBreakdown({ title, note, rows = [] }) {
                 "--d": `${i * 90}ms`,
               }}
             >
-              <span className="mbrk-tag">{row.label}</span>
+              <span className="mbrk-tag">{t(row.label)}</span>
               <div className="mbrk-head">
-                <h3 className="mbrk-name">{row.crop}</h3>
+                <h3 className="mbrk-name">{t(row.crop)}</h3>
                 <p className="mbrk-value">
                   <span className="mbrk-sym">₱</span>
                   <span className="mbrk-num" data-value={row.value}>
@@ -49,7 +51,7 @@ export default function MoneyBreakdown({ title, note, rows = [] }) {
               <div
                 className="mbrk-bar"
                 role="meter"
-                aria-label={`${row.label} share of expenses`}
+                aria-label={t("{category} share of expenses", { category: t(row.label) })}
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={Math.round(row.pct)}

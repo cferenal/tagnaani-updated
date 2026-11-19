@@ -1,8 +1,11 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 import { Check } from "lucide-react";
 import { CROPS } from "@/lib/farmData";
 import { cn } from "@/lib/utils";
 
 export default function CropPicker({ value = [], onChange, options = CROPS }) {
+  const { t } = useSiteLanguage();
+
   function toggle(crop) {
     onChange(value.includes(crop) ? value.filter((c) => c !== crop) : [...value, crop]);
   }
@@ -24,7 +27,7 @@ export default function CropPicker({ value = [], onChange, options = CROPS }) {
             )}
           >
             {active && <Check className="h-3 w-3" strokeWidth={2.5} />}
-            {crop}
+            {t(crop)}
           </button>
         );
       })}

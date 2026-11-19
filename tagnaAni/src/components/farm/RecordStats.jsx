@@ -1,6 +1,8 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 import { formatNumber } from "@/lib/farmData";
 
 export default function RecordStats({ totals }) {
+  const { t } = useSiteLanguage();
   const items = [
     { label: "Total harvest", value: `${formatNumber(totals.harvest, 0)} kg` },
     { label: "Seeds planted", value: formatNumber(totals.planted) },
@@ -13,7 +15,7 @@ export default function RecordStats({ totals }) {
       {items.map((item) => (
         <div key={item.label} className="card-soft p-4">
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/90">
-            {item.label}
+            {t(item.label)}
           </p>
           <p className="mt-2.5 font-display text-[22px] leading-none">{item.value}</p>
         </div>

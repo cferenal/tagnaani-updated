@@ -1,3 +1,4 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 
 import { Loader2, ShieldCheck } from "lucide-react";
 import { Fragment, useEffect, useState } from "react";
@@ -61,6 +62,7 @@ const humanize = (name) =>
 // "View, create and delete records" — delete is emphasized so it doesn't hide
 // among harmless verbs.
 function OperationSummary({ operations }) {
+  const { t } = useSiteLanguage();
   return (
     <>
       {operations.map((op, i) => {
@@ -74,9 +76,7 @@ function OperationSummary({ operations }) {
             </span>
           </Fragment>
         );
-      })}{" "}
-      records
-    </>
+      })}{" "}{t("records")}</>
   );
 }
 
@@ -99,6 +99,7 @@ function ToolRow({ title, children }) {
 }
 
 export function ConsentPage() {
+  const { t } = useSiteLanguage();
   // Read raw: the opaque handle must reach the server exactly as the platform sent it.
   const ctx = new URLSearchParams(window.location.search).get("ctx");
   const { appId } = getAppParams();
@@ -191,11 +192,9 @@ export function ConsentPage() {
 
   if (checking) {
     return (
-      <AuthLayout icon={ShieldCheck} title="Authorize access">
+      <AuthLayout icon={ShieldCheck} title={t("Authorize access")}>
         <div className="flex items-center justify-center py-6 text-muted-foreground">
-          <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />
-          Loading…
-        </div>
+          <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />{t("Loading…")}</div>
       </AuthLayout>
     );
   }
@@ -204,11 +203,11 @@ export function ConsentPage() {
   const appName = info?.app_name || "this app";
 
   if (decided) {
-    return <AuthLayout icon={ShieldCheck} title={decided === "approve" ? "Access granted" : "Access denied"} subtitle={`You can return to ${client} and close this window.`} />;
+    return <AuthLayout icon={ShieldCheck} title={decided === "approve" ? t("Access granted") : t("Access denied")} subtitle={`You can return to ${client} and close this window.`} />;
   }
   if (reconnect) {
     return (
-      <AuthLayout icon={ShieldCheck} title="Reconnect required">
+      <AuthLayout icon={ShieldCheck} title={t("Reconnect required")}>
         <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{reconnect}</div>
       </AuthLayout>
     );
@@ -216,7 +215,7 @@ export function ConsentPage() {
   // No consent details means nothing trustworthy to approve.
   if (error && !info) {
     return (
-      <AuthLayout icon={ShieldCheck} title="Authorize access">
+      <AuthLayout icon={ShieldCheck} title={t("Authorize access")}>
         <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>
       </AuthLayout>
     );
@@ -225,9 +224,9 @@ export function ConsentPage() {
   const tools = Array.isArray(info.tools) ? info.tools : [];
   const { data, agents, actions } = groupTools(tools);
   return (
-    <AuthLayout icon={ShieldCheck} title="Authorize access" subtitle={`${client} wants to access ${appName} on your behalf`}>
+    <AuthLayout icon={ShieldCheck} title={t("Authorize access")} subtitle={`${client} wants to access ${appName} on your behalf`}>
       {error && <div className="mb-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
-      <p className="mb-3 text-sm font-medium text-foreground">{tools.length ? `${client} will be able to:` : "No tools requested"}</p>
+      <p className="mb-3 text-sm font-medium text-foreground">{tools.length ? `${client} will be able to:` : t("No tools requested")}</p>
       {tools.length > 0 && (
         <div className="space-y-4 text-sm mb-6">
           {data.length > 0 && (
@@ -244,14 +243,14 @@ export function ConsentPage() {
                     className="text-sm font-medium text-primary hover:underline"
                     onClick={() => setShowAllData((shown) => !shown)}
                   >
-                    {showAllData ? "Show less" : `Show all ${data.length}`}
+                    {showAllData ? t("Show less") : `Show all ${data.length}`}
                   </button>
                 </li>
               )}
             </ToolSection>
           )}
           {agents.length > 0 && (
-            <ToolSection title="Agents">
+            <ToolSection title={t("Agents")}>
               {agents.map((tool) => (
                 <ToolRow key={tool.name} title={tool.agent ? humanize(tool.agent) : tool.title || tool.name}>
                   {tool.description}
@@ -260,7 +259,7 @@ export function ConsentPage() {
             </ToolSection>
           )}
           {actions.length > 0 && (
-            <ToolSection title="Actions">
+            <ToolSection title={t("Actions")}>
               {actions.map((tool) => (
                 <ToolRow key={tool.name} title={tool.title || tool.name}>
                   {tool.description}
@@ -272,13 +271,9 @@ export function ConsentPage() {
       )}
 
       <div className="flex gap-3">
-        <Button variant="outline" className="h-12 flex-1 font-medium" disabled={submitting} onClick={() => respond("deny")}>
-          Deny
-        </Button>
+        <Button variant="outline" className="h-12 flex-1 font-medium" disabled={submitting} onClick={() => respond("deny")}>{t("Deny")}</Button>
         <Button className="h-12 flex-1 font-medium" disabled={submitting} onClick={() => respond("approve")}>
-          {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : null}
-          Approve
-        </Button>
+          {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : null}{t("Approve")}</Button>
       </div>
     </AuthLayout>
   );

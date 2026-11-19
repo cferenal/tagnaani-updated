@@ -1,3 +1,4 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 import { useEffect, useState } from "react";
 import { Search, MapPin, Check } from "lucide-react";
 import { isPhilippineLand, localLocations, lookupLocations } from "@/lib/locations";
@@ -7,6 +8,7 @@ import { cn } from "@/lib/utils";
 const field = "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm";
 
 export default function LocationPicker({ value, onChange }) {
+  const { t } = useSiteLanguage();
   const [query, setQuery] = useState("");
   const [remote, setRemote] = useState([]);
   const [status, setStatus] = useState("");
@@ -70,13 +72,13 @@ export default function LocationPicker({ value, onChange }) {
   return (
     <div className="space-y-3">
       <label className="relative block">
-        <span className="sr-only">Search Philippine address, town or ZIP code</span>
+        <span className="sr-only">{t("Search Philippine address, town or ZIP code")}</span>
         <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
         <input value={query} maxLength={120} onChange={(event) => setQuery(event.target.value)}
-          placeholder="Town, province, or ZIP code" className={cn(field, "pl-9 text-base")} />
+          placeholder={t("Town, province, or ZIP code")} className={cn(field, "pl-9 text-base")} />
       </label>
-      {value && <p className="flex items-center gap-2 text-sm"><Check size={16} /> Selected: {value.coordinateSelection ? `${value.lat.toFixed(5)}, ${value.lon.toFixed(5)} (${value.name})` : value.name}</p>}
-      {status && <p role="status" className="text-sm">{status}</p>}
+      {value && <p className="flex items-center gap-2 text-sm"><Check size={16} />{" " + t("Selected:") + " "}{value.coordinateSelection ? `${value.lat.toFixed(5)}, ${value.lon.toFixed(5)} (${value.name})` : value.name}</p>}
+      {status && <p role="status" className="text-sm">{t(status)}</p>}
       {options.length > 0 && (
         <div className="no-scrollbar max-h-56 space-y-1.5 overflow-y-auto">
           {options.map((location) => (
@@ -91,16 +93,16 @@ export default function LocationPicker({ value, onChange }) {
         </div>
       )}
       <details className="rounded-xl border border-border bg-card p-3 text-sm">
-        <summary className="cursor-pointer font-semibold">Enter latitude and longitude</summary>
-        <p className="my-2">Use decimal degrees from your map pin. The app checks Philippine land coverage.</p>
+        <summary className="cursor-pointer font-semibold">{t("Enter latitude and longitude")}</summary>
+        <p className="my-2">{t("Use decimal degrees from your map pin. The app checks Philippine land coverage.")}</p>
         <div className="grid grid-cols-2 gap-2">
           <label>Latitude<input className={field} value={latitude} inputMode="decimal" placeholder="8.22800"
             onChange={(event) => { setLatitude(event.target.value); setCoordinateError(""); }} /></label>
           <label>Longitude<input className={field} value={longitude} inputMode="decimal" placeholder="124.24520"
             onChange={(event) => { setLongitude(event.target.value); setCoordinateError(""); }} /></label>
         </div>
-        <button type="button" onClick={checkCoordinates} disabled={checking} className="mt-2 rounded-lg border border-primary/50 px-3 py-2">{checking ? "Looking up place…" : "Check and use coordinates"}</button>
-        <p className="mt-2 text-xs">Place names from <a className="underline" href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>.</p>
+        <button type="button" onClick={checkCoordinates} disabled={checking} className="mt-2 rounded-lg border border-primary/50 px-3 py-2">{checking ? t("Looking up place…") : t("Check and use coordinates")}</button>
+        <p className="mt-2 text-xs">{t("Place names from") + " "}<a className="underline" href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>.</p>
         {coordinateError && <p role="alert" className="mt-2 text-destructive">{coordinateError}</p>}
       </details>
     </div>

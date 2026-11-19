@@ -1,7 +1,9 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 import { useEffect, useState } from "react";
 import { tagnaRequest } from "@/api/base44Client";
 
 export function Announcements() {
+  const { t } = useSiteLanguage();
   const [items, setItems] = useState([]);
   useEffect(() => {
     let active = true;
@@ -13,7 +15,7 @@ export function Announcements() {
   if (!items.length) return null;
   return (
     <section className="mb-5 rounded-2xl border border-[#643100]/30 bg-[#EACAAE] p-4">
-      <h2 className="font-display text-lg font-bold">Announcements</h2>
+      <h2 className="font-display text-lg font-bold">{t("Announcements")}</h2>
       <ul className="divide-y divide-[#643100]/25">
         {items.map(({ id, message, at }) => (
           <li key={id} className="whitespace-pre-wrap break-words py-2 text-sm">

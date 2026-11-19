@@ -112,9 +112,9 @@ export function formatNumber(value, digits = 0) {
 
 export function greeting(date = new Date()) {
   const hour = date.getHours();
-  if (hour < 11) return "Magandang umaga";
-  if (hour < 17) return "Magandang hapon";
-  return "Magandang gabi";
+  if (hour < 11) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
 }
 
 export function todayKey(date = new Date()) {

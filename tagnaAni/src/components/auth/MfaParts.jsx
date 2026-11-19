@@ -1,3 +1,4 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronsUpDown, Copy, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,7 @@ export function useAppInfo() {
 // shows them returns <MfaScreen> in place of its own layout instead of nesting them in its card.
 export function MfaScreen({ children }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8">
+    <div className="min-h-full flex items-center justify-center bg-background px-4 py-8">
       <div className="w-full max-w-md bg-card rounded-2xl shadow-sm border border-border p-8">{children}</div>
     </div>
   );
@@ -69,16 +70,14 @@ export function CodeField({ id, label = "Enter the 6-digit code", value, onChang
 
 // "Didn't receive a code? Resend", counting down while a resend isn't allowed yet.
 export function ResendLine({ cooldown, disabled, onResend, error }) {
+  const { t } = useSiteLanguage();
   return (
     <div className="space-y-1 text-center">
-      <p className="text-sm text-muted-foreground">
-        Didn't receive a code?{" "}
+      <p className="text-sm text-muted-foreground">{t("Didn't receive a code?")}{" "}
         {cooldown > 0 ? (
-          <span>Resend in {cooldown}s</span>
+          <span>{t("Resend in") + " "}{cooldown}s</span>
         ) : (
-          <button type="button" disabled={disabled} onClick={onResend} className="font-semibold text-foreground hover:underline disabled:opacity-50">
-            Resend
-          </button>
+          <button type="button" disabled={disabled} onClick={onResend} className="font-semibold text-foreground hover:underline disabled:opacity-50">{t("Resend")}</button>
         )}
       </p>
       {error && <p className="text-sm text-destructive">{error}</p>}
@@ -118,6 +117,7 @@ const matchesSearch = (code, search) => {
 
 // A searchable list of dial codes. Typing narrows it, and closing it with one match left picks that one.
 function DialCodePicker({ value, onChange }) {
+  const { t } = useSiteLanguage();
   const [open, setOpen] = useState(false);
   const search = useRef("");
 
@@ -133,7 +133,7 @@ function DialCodePicker({ value, onChange }) {
   return (
     <Popover open={open} onOpenChange={handleOpenChange} modal>
       <PopoverTrigger asChild>
-        <Button type="button" variant="outline" role="combobox" aria-expanded={open} aria-label="Country code"
+        <Button type="button" variant="outline" role="combobox" aria-expanded={open} aria-label={t("Country code")}
           className="h-10 w-[100px] justify-between px-2.5 font-normal shadow-none">
           {value}
           <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden="true" />
@@ -141,9 +141,9 @@ function DialCodePicker({ value, onChange }) {
       </PopoverTrigger>
       <PopoverContent className="w-[140px] p-0" align="start" side="bottom" avoidCollisions={false}>
         <Command filter={(item, text) => (matchesSearch(item, text) ? 1 : 0)}>
-          <CommandInput placeholder="Search..." className="h-9" onValueChange={(text) => { search.current = text; }} />
+          <CommandInput placeholder={t("Search...")} className="h-9" onValueChange={(text) => { search.current = text; }} />
           <CommandList>
-            <CommandEmpty>No match</CommandEmpty>
+            <CommandEmpty>{t("No match")}</CommandEmpty>
             <CommandGroup>
               {DIAL_CODES.map((code) => (
                 <CommandItem key={code} value={code} onSelect={() => { onChange(`+${code}`); search.current = ""; setOpen(false); }}>
@@ -162,6 +162,7 @@ function DialCodePicker({ value, onChange }) {
 // Dial code picker plus the number (digits only, 15 at most). Once 4 digits are in, a number that can't
 // be real is flagged as you type; `error` (from a failed send) takes the place of that message.
 export function PhoneField({ countryCode, onCountryCodeChange, phoneNumber, onPhoneNumberChange, error, onSubmit }) {
+  const { t } = useSiteLanguage();
   const [touched, setTouched] = useState(false);
   const invalid = touched && phoneNumber.length >= 4 && !isPlausiblePhone(`${countryCode}${phoneNumber}`);
   const message = error ?? (invalid ? INVALID_PHONE : null);
@@ -177,13 +178,14 @@ export function PhoneField({ countryCode, onCountryCodeChange, phoneNumber, onPh
       </div>
       {message
         ? <p className="text-sm text-destructive">{message}</p>
-        : <p className="text-sm text-muted-foreground">Standard message and data rates may apply.</p>}
+        : <p className="text-sm text-muted-foreground">{t("Standard message and data rates may apply.")}</p>}
     </div>
   );
 }
 
 // Copies the setup key: an icon next to the key, or with `wide` the full-width "Copy key" button used on phones.
 export function CopyKeyButton({ text, wide = false }) {
+  const { t } = useSiteLanguage();
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     await navigator.clipboard.writeText(text.replace(/\s/g, ""));
@@ -193,12 +195,12 @@ export function CopyKeyButton({ text, wide = false }) {
   if (wide) {
     return (
       <Button type="button" variant="outline" className="w-full h-11" onClick={copy}>
-        {copied ? "Copied" : "Copy key"}
+        {copied ? t("Copied") : t("Copy key")}
       </Button>
     );
   }
   return (
-    <button type="button" onClick={copy} title="Copy to clipboard" aria-label="Copy to clipboard"
+    <button type="button" onClick={copy} title={t("Copy to clipboard")} aria-label={t("Copy to clipboard")}
       className="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-muted">
       {copied ? <Check className="w-4 h-4" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />}
     </button>
@@ -209,28 +211,25 @@ export function CopyKeyButton({ text, wide = false }) {
 // (signInPath "/mfa" for factor management, whose sign-in lives on that page). The server's
 // wording for that case already says "sign in again", so it is replaced, not repeated.
 export function MfaNotice({ error, signInPath = "/login" }) {
+  const { t } = useSiteLanguage();
   if (!error) return null;
   const returnTo = safeReturnTo();
   return (
     <div role="alert" className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm text-center">
       {error.mustSignInAgain ? (
-        <>
-          Your sign-in expired.{" "}
-          <a href={signInPath + (returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "")} className="font-medium underline">
-            Sign in again
-          </a>
+        <>{t("Your sign-in expired.")}{" "}
+          <a href={signInPath + (returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "")} className="font-medium underline">{t("Sign in again")}</a>
         </>
-      ) : (error.message || "Verification failed. Please try again.")}
+      ) : (error.message || t("Verification failed. Please try again."))}
     </div>
   );
 }
 
 export function RememberDevice({ checked, onChange }) {
+  const { t } = useSiteLanguage();
   return (
     <label className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-      <input type="checkbox" className="h-4 w-4 accent-primary" checked={checked} onChange={(e) => onChange(e.target.checked)} />
-      Remember this device for 30 days
-    </label>
+      <input type="checkbox" className="h-4 w-4 accent-primary" checked={checked} onChange={(e) => onChange(e.target.checked)} />{t("Remember this device for 30 days")}</label>
   );
 }
 

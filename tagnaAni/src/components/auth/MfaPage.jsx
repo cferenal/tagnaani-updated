@@ -1,3 +1,4 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,7 +40,7 @@ export function MfaPage() {
 
   if (resuming) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-full flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -55,6 +56,7 @@ export function MfaPage() {
 
 // Changing two-factor settings starts with a fresh sign-in, then a code from an enrolled method.
 function ConfirmIdentity({ returnTo, onChallenge, initialError }) {
+  const { t } = useSiteLanguage();
   const info = useAppInfo();
   const options = info ? info.auth_config || {} : null;
   const [email, setEmail] = useState("");
@@ -79,26 +81,23 @@ function ConfirmIdentity({ returnTo, onChallenge, initialError }) {
 
   return (
     <>
-      <MfaHeader title={info && `Welcome to ${info.name || "the app"}`} description="Sign in to continue" />
+      <MfaHeader title={info && `Welcome to ${info.name || "the app"}`} description={t("Sign in to continue")} />
       <MfaNotice error={error} />
       {!options && !error && <Loader2 className="mx-auto w-6 h-6 animate-spin text-muted-foreground" />}
       {options && (
         <div className="space-y-4">
           {providers.map((provider) => (
             <Button key={provider.id} variant="outline" className="w-full h-12 text-sm font-medium" onClick={() => withProvider(provider.id)}>
-              {provider.id === "google" && <GoogleIcon className="w-5 h-5 mr-2" />}
-              Continue with {provider.name}
+              {provider.id === "google" && <GoogleIcon className="w-5 h-5 mr-2" />}{t("Continue with") + " "}{provider.name}
             </Button>
           ))}
           {(options.enable_sso_login || options.use_workspace_sso) && (
-            <Button variant="outline" className="w-full h-12 text-sm font-medium" onClick={() => withProvider("sso")}>
-              Continue with SSO
-            </Button>
+            <Button variant="outline" className="w-full h-12 text-sm font-medium" onClick={() => withProvider("sso")}>{t("Continue with SSO")}</Button>
           )}
           {options.enable_username_password && (
             <form onSubmit={submit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="mfa-email">Email</Label>
+                <Label htmlFor="mfa-email">{t("Email")}</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
                   <Input id="mfa-email" type="email" autoComplete="email" placeholder="you@example.com" value={email}
@@ -106,7 +105,7 @@ function ConfirmIdentity({ returnTo, onChallenge, initialError }) {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="mfa-password">Password</Label>
+                <Label htmlFor="mfa-password">{t("Password")}</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
                   <Input id="mfa-password" type="password" autoComplete="current-password" placeholder="••••••••" value={password}
@@ -114,9 +113,7 @@ function ConfirmIdentity({ returnTo, onChallenge, initialError }) {
                 </div>
               </div>
               <Button type="submit" className="w-full h-12 font-medium" disabled={busy}>
-                {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Continue
-              </Button>
+                {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}{t("Continue")}</Button>
             </form>
           )}
         </div>

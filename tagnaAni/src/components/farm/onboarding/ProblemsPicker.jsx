@@ -1,8 +1,11 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 import { Check } from "lucide-react";
 import { PROBLEMS } from "@/lib/farmData";
 import { cn } from "@/lib/utils";
 
 export default function ProblemsPicker({ value = [], onChange }) {
+  const { t } = useSiteLanguage();
+
   function toggle(problem) {
     onChange(value.includes(problem) ? value.filter((p) => p !== problem) : [...value, problem]);
   }
@@ -21,7 +24,7 @@ export default function ProblemsPicker({ value = [], onChange }) {
               active ? "border-primary bg-secondary font-medium" : "border-border/70 bg-card hover:border-primary/30",
             )}
           >
-            {problem}
+            {t(problem)}
             <span
               className={cn(
                 "flex h-5 w-5 items-center justify-center rounded-full border",

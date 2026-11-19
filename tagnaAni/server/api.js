@@ -101,6 +101,7 @@ function publicUser(user, state) {
   return {
     id: user.id, username: user.username, role: user.role,
     mustChangePassword: Boolean(user.mustChangePassword),
+    reminderLanguage: user.reminderLanguage || state.subscriptions[user.phone]?.lang || "ENG",
     pendingPhone: user.pendingPhone || null, phone: user.phone || null, subscribed: Boolean(state.subscriptions[user.phone]?.subscribed),
   };
 }
@@ -158,6 +159,7 @@ function applySmsCommand(state, phone, command, message, now) {
       state.subscriptions[user.phone].subscribed = false;
     }
     user.phone = phone;
+    if (user.reminderLanguage && entry) entry.lang = user.reminderLanguage;
     delete user.pendingPhone;
     delete user.pairing;
     delete user.reset;
@@ -169,11 +171,16 @@ function applySmsCommand(state, phone, command, message, now) {
     if (!entry && command.on) return "Tagna-Ani: Send an advisory request first. " + smsHelp(command.lang);
     if (entry) {
       entry.subscribed = command.on;
-      if (command.on && SMS_LANGUAGE_SUFFIX.test(message.trim())) entry.lang = command.lang;
+      if (command.on && SMS_LANGUAGE_SUFFIX.test(message.trim())) {
+        entry.lang = command.lang;
+        const account = Object.values(state.users).find((user) => user.phone === phone);
+        if (account) account.reminderLanguage = command.lang;
+      }
     }
     return command.on ? "Tagna-Ani: Subscribed to 6 AM Philippine-time reminders. Text ANI ALERTS OFF to stop." : "Tagna-Ani: Daily reminders are off.";
   }
-  state.subscriptions[phone] = { ...command, subscribed: entry?.subscribed || false, lastDaily: entry?.lastDaily };
+  const account = Object.values(state.users).find((user) => user.phone === phone);
+  state.subscriptions[phone] = { ...command, lang: account?.reminderLanguage || command.lang, subscribed: entry?.subscribed || false, lastDaily: entry?.lastDaily };
   return command;
 }
 
@@ -460,6 +467,14 @@ export function createTagnaApi() {
           user.pairing = { phone, code: hash(code), until: Date.now() + 10 * minute };
           return { command: `ANI VERIFY ${code}` };
         }
+        if (path === "/reminder-language" && post) {
+          if (user.role === "admin") fail(403, "Reminder language is available for farmer accounts.");
+          if (!["ENG", "TAG", "BIS"].includes(data.language)) fail(400, "Choose English, Tagalog, or Bisaya.");
+          user.reminderLanguage = data.language;
+          const subscription = state.subscriptions[user.phone];
+          if (subscription) subscription.lang = data.language;
+          return { user: publicUser(user, state) };
+        }
         if (path === "/subscription" && post) {
           if (!user.phone) fail(400, "Verify your mobile number first.");
           if (typeof data.subscribed !== "boolean") fail(400, "Choose a subscription status.");
@@ -471,6 +486,7 @@ export function createTagnaApi() {
             state.subscriptions[user.phone] = {
               ...current, ...(!current && { city: farm?.city, crop: farm?.crop, problem: farm?.problem,
                 lat: farm?.location?.lat, lon: farm?.location?.lon, province: farm?.location?.province }),
+              lang: user.reminderLanguage || current?.lang || "ENG",
               subscribed: data.subscribed,
             };
             if (data.subscribed) syncReminderFarm(state, user);

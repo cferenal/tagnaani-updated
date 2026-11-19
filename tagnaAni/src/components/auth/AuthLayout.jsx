@@ -1,7 +1,7 @@
 // Full-screen card shared by the auth pages; it sets its own color tokens so it stays readable under any theme.
 export function AuthLayout({ icon: Icon, title, subtitle, footer, children }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8 text-foreground">
+    <div className="flex min-h-full items-center justify-center bg-background px-4 py-8 text-foreground">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary">

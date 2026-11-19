@@ -1,3 +1,4 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 import { Link } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ export function SubmitButton({ busy, busyLabel, children, ...props }) {
 }
 
 export function GoogleButton({ returnTo, onError }) {
+  const { t } = useSiteLanguage();
   return (
     <Button
       type="button"
@@ -39,20 +41,19 @@ export function GoogleButton({ returnTo, onError }) {
       className="mb-6 h-12 w-full text-sm font-medium"
       onClick={() => signInWithProvider("google", returnTo).catch((err) => onError(err.message || "Unable to sign in with Google"))}
     >
-      <GoogleIcon className="mr-2 h-5 w-5" />
-      Continue with Google
-    </Button>
+      <GoogleIcon className="mr-2 h-5 w-5" />{t("Continue with Google")}</Button>
   );
 }
 
 export function OrDivider() {
+  const { t } = useSiteLanguage();
   return (
     <div className="relative mb-6">
       <div className="absolute inset-0 flex items-center">
         <div className="w-full border-t border-border" />
       </div>
       <div className="relative flex justify-center text-xs uppercase">
-        <span className="bg-card px-3 text-muted-foreground">or</span>
+        <span className="bg-card px-3 text-muted-foreground">{t("or")}</span>
       </div>
     </div>
   );

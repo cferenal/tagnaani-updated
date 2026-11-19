@@ -16,6 +16,12 @@ const problemLabels = {
   TAG: ["Peste", "Mababang ani", "Pabago-bagong panahon", "Taba ng lupa", "Tubig / irigasyon", "Mataas na gastos sa pagsasaka"],
 };
 
+const languageHelp = {
+  ENG: "Optional: Add TAG or TAGALOG for Tagalog, or BIS or BISAYA for Bisaya. Example: ANI 9200 RICE DROUGHT BIS. For help in your language, text ANI HELP BIS or ANI HELP TAG.",
+  BIS: "Opsyonal: Idugang ang BIS o BISAYA para sa Bisaya, o TAG o TAGALOG para sa Tagalog. Pananglitan: ANI 9200 RICE DROUGHT BIS o ANI HELP BIS.",
+  TAG: "Opsyonal: Idagdag ang TAG o TAGALOG para sa Tagalog, o BIS o BISAYA para sa Bisaya. Halimbawa: ANI 9200 RICE DROUGHT TAG o ANI HELP TAG.",
+};
+
 export function smsHelp(lang = "ENG") {
   const [format, example, spaces, crops, problems, other] = helpCopy[lang] || helpCopy.ENG;
   return [
@@ -29,6 +35,8 @@ export function smsHelp(lang = "ENG") {
     `${problems}: ${(problemLabels[lang] || PROBLEMS).join(", ")}`,
     "",
     other,
+    "",
+    languageHelp[lang] || languageHelp.ENG,
   ].join("\n");
 }
 

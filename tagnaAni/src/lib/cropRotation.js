@@ -107,8 +107,8 @@ export function buildMonthlyRotation({ start, cropAssumptions, irrigated, rainBa
         historical_max_air_c: temp,
         root_wetness_index: gwetBase[m - 1],
         reason: active
-          ? "Passes monthly NASA climate screen across crop duration."
-          : "Rainfall/heat outside threshold; use cover crop or irrigation.",
+          ? "Fits the rain and heat limits used for this crop’s growing months."
+          : "None of the crops checked fit this period’s rain and heat limits. Consider keeping the soil covered until conditions improve.",
       });
       if (active) {
         remaining -= 1;
@@ -119,6 +119,7 @@ export function buildMonthlyRotation({ start, cropAssumptions, irrigated, rainBa
   });
 
   return {
+    irrigated,
     generated_at: new Date().toISOString(),
     scenarios,
   };

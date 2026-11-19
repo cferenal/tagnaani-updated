@@ -1,3 +1,4 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import LocationPicker from "@/components/farm/onboarding/LocationPicker";
@@ -10,6 +11,7 @@ const FIELD =
 const LABEL = "mb-1.5 block text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted-foreground";
 
 export default function ProfileEditor({ open, onOpenChange, profile, onSave }) {
+  const { t } = useSiteLanguage();
   const [name, setName] = useState("");
   const [location, setLocation] = useState(null);
   const [farmSize, setFarmSize] = useState("");
@@ -59,16 +61,16 @@ export default function ProfileEditor({ open, onOpenChange, profile, onSave }) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-[400px] overflow-y-auto rounded-[1.5rem]">
         <DialogHeader>
-          <DialogTitle className="font-display text-[21px]">Farm profile</DialogTitle>
+          <DialogTitle className="font-display text-[21px]">{t("Farm profile")}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <div>
-            <label className={LABEL}>Name</label>
+            <label className={LABEL}>{t("Name")}</label>
             <input value={name} onChange={(e) => setName(e.target.value)} className={FIELD} />
           </div>
           <div>
-            <label className={LABEL}>Farm area (hectares)</label>
+            <label className={LABEL}>{t("Farm area (hectares)")}</label>
             <input
               value={farmSize}
               onChange={(e) => setFarmSize(e.target.value.replace(/[^0-9.]/g, ""))}
@@ -77,19 +79,19 @@ export default function ProfileEditor({ open, onOpenChange, profile, onSave }) {
             />
           </div>
           <div>
-            <label className={LABEL}>Location</label>
+            <label className={LABEL}>{t("Location")}</label>
             <LocationPicker value={location} onChange={setLocation} />
           </div>
           <div>
-            <label className={LABEL}>Crops</label>
+            <label className={LABEL}>{t("Crops")}</label>
             <CropPicker value={crops} onChange={setCrops} />
           </div>
           <div>
-            <label className={LABEL}>Challenges</label>
+            <label className={LABEL}>{t("Challenges")}</label>
             <ProblemsPicker value={problems} onChange={setProblems} />
           </div>
 
-          {error && <p className="text-[12.5px] text-destructive">{error}</p>}
+          {error && <p className="text-[12.5px] text-destructive">{t(error)}</p>}
 
           <button
             type="button"
@@ -97,7 +99,7 @@ export default function ProfileEditor({ open, onOpenChange, profile, onSave }) {
             disabled={saving || !location || name.trim().length < 2}
             className="w-full rounded-2xl bg-primary py-3.5 text-[12px] font-semibold uppercase tracking-[0.14em] text-primary-foreground disabled:opacity-40"
           >
-            {saving ? "Saving…" : "Save profile"}
+            {saving ? t("Saving…") : t("Save profile")}
           </button>
         </div>
       </DialogContent>

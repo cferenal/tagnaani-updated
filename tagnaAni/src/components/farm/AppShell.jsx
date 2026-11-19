@@ -1,3 +1,4 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Home as HomeIcon, ClipboardList, BarChart3, Users, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,7 @@ const TABS = [
 ];
 
 export default function AppShell({ children, hideNav = false }) {
+  const { t } = useSiteLanguage();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isFullBleedHeader = pathname.startsWith("/contacts");
 
@@ -43,7 +45,7 @@ export default function AppShell({ children, hideNav = false }) {
                   )}
                 >
                   <Icon className="h-[17px] w-[17px]" strokeWidth={active ? 2.1 : 1.7} />
-                  {label}
+                  {t(label)}
                 </Link>
               );
             })}

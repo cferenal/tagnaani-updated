@@ -1,16 +1,17 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 import { weatherCodeInfo } from "@/lib/weather";
 import { cn } from "@/lib/utils";
 
-function dayLabel(dateStr, today) {
-  if (today) return "Today";
+function dayLabel(dateStr, locale) {
   const d = new Date(dateStr + "T00:00:00Z");
-  return d.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" });
+  return d.toLocaleDateString(locale, { weekday: "short", timeZone: "UTC" });
 }
 
 export default function WeatherTimeline({ daily = [] }) {
+  const { t, locale } = useSiteLanguage();
   const todayStr = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).format(new Date());
   const alignedDaily = daily.filter((day) => day.date >= todayStr);
-  if (!alignedDaily.length) return <p className="text-sm">Forecast unavailable. Refresh to check again.</p>;
+  if (!alignedDaily.length) return <p className="text-sm">{t("Forecast unavailable. Refresh to check again.")}</p>;
 
   return (
     <div className="grid w-full grid-flow-col auto-cols-[minmax(90px,1fr)] gap-2.5 overflow-x-auto pb-1">
@@ -28,7 +29,7 @@ export default function WeatherTimeline({ daily = [] }) {
             )}
           >
             <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#643100]">
-              {dayLabel(day.date, active)}
+              {active ? t("Today") : dayLabel(day.date, locale)}
             </p>
             <Icon
               className="mx-auto my-3 h-6 w-6 text-[#643100]"
@@ -41,8 +42,7 @@ export default function WeatherTimeline({ daily = [] }) {
               {Math.round(day.tMin)}°
             </p>
             <p className="mt-2.5 text-[10px] font-semibold tracking-wide text-[#7F3E00]">
-              {Math.round(day.rainChance)}% rain
-            </p>
+              {Math.round(day.rainChance)}{t("% rain")}</p>
           </div>
         );
       })}

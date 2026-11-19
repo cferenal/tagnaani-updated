@@ -1,3 +1,4 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, Smartphone, MessageSquare } from "lucide-react";
@@ -16,6 +17,7 @@ const SMS_RESEND_SECONDS = 30;
 // lasts a few minutes, so an expired one sends the user back through /mfa.
 // The helper also offers session.forgetDevices(code, method) for a "forget remembered devices" control.
 export function MfaManage({ session, returnTo }) {
+  const { t } = useSiteLanguage();
   const [status, setStatus] = useState(null);
   const [view, setView] = useState({ name: "list" });
   const [error, setError] = useState(null);
@@ -34,8 +36,8 @@ export function MfaManage({ session, returnTo }) {
 
   return (
     <div className="session-record-block">
-      <MfaHeader title="Two-factor authentication"
-        description="Add an extra layer of protection when signing in. You'll be asked for a code each time you sign in." />
+      <MfaHeader title={t("Two-factor authentication")}
+        description={t("Add an extra layer of protection when signing in. You'll be asked for a code each time you sign in.")} />
       {view.name === "setup" && <MfaMethodSetup session={session} method={view.method} signInPath="/mfa" onDone={back} onBack={() => setView({ name: "list" })} />}
       {view.name === "disable" && <Disable session={session} method={view.method} onDone={back} onBack={() => setView({ name: "list" })} />}
       {view.name === "list" && (
@@ -50,26 +52,22 @@ export function MfaManage({ session, returnTo }) {
                 <div className="flex-1 min-w-[10rem]">
                   <p className="font-medium">{name}</p>
                   <p className="text-sm text-muted-foreground">
-                    {enrolled ? (id === "sms" && status.phone_hint ? `Enabled · ${status.phone_hint}` : "Enabled") : description}
+                    {enrolled ? (id === "sms" && status.phone_hint ? `Enabled · ${status.phone_hint}` : t("Enabled")) : description}
                   </p>
                 </div>
                 {/* On a narrow screen the actions drop below the method instead of squeezing it. */}
                 <div className="flex gap-2 ml-auto">
                   <Button size="sm" variant="outline" onClick={() => setView({ name: "setup", method: id })}>
-                    {enrolled ? "Replace" : "Enable"}
+                    {enrolled ? t("Replace") : t("Enable")}
                   </Button>
                   {enrolled && (
-                    <Button size="sm" variant="ghost" onClick={() => setView({ name: "disable", method: id })}>
-                      Disable
-                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setView({ name: "disable", method: id })}>{t("Disable")}</Button>
                   )}
                 </div>
               </div>
             );
           })}
-          <Button className="w-full h-12 font-medium" onClick={() => { window.location.href = returnTo; }}>
-            Done
-          </Button>
+          <Button className="w-full h-12 font-medium" onClick={() => { window.location.href = returnTo; }}>{t("Done")}</Button>
         </div>
       )}
     </div>
@@ -78,6 +76,7 @@ export function MfaManage({ session, returnTo }) {
 
 // Disables a method after a fresh code from that same method.
 function Disable({ session, method, onDone, onBack }) {
+  const { t } = useSiteLanguage();
   const [code, setCode] = useState("");
   const [codeSent, setCodeSent] = useState(method === "totp");
   const [error, setError] = useState(null);
@@ -113,7 +112,7 @@ function Disable({ session, method, onDone, onBack }) {
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold text-center">
-        {method === "totp" ? "Enter a code from your authenticator app" : "Verify with a code sent to your phone"}
+        {method === "totp" ? t("Enter a code from your authenticator app") : t("Verify with a code sent to your phone")}
       </h2>
       <MfaNotice error={error} signInPath="/mfa" />
       {codeSent ? (
@@ -123,16 +122,12 @@ function Disable({ session, method, onDone, onBack }) {
         </>
       ) : (
         <Button className="w-full h-11" disabled={busy} onClick={sendCode}>
-          {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-          Send Code
-        </Button>
+          {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}{t("Send Code")}</Button>
       )}
       <div className="grid grid-cols-2 gap-3 pt-2">
-        <Button variant="outline" className="h-11" disabled={busy} onClick={onBack}>Cancel</Button>
+        <Button variant="outline" className="h-11" disabled={busy} onClick={onBack}>{t("Cancel")}</Button>
         <Button className="h-11" disabled={busy || !codeSent || code.length < 6} onClick={() => confirm()}>
-          {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-          Verify & Disable
-        </Button>
+          {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}{t("Verify & Disable")}</Button>
       </div>
     </div>
   );

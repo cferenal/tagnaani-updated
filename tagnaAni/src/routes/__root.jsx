@@ -5,6 +5,7 @@ import { NotFound } from "@/components/NotFound";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/lib/AuthContext";
 import { Base44Scripts } from "base44:document";
+import { SiteLanguageProvider, SiteLanguageSelector } from "@/lib/siteLanguage";
 import appCss from "@/index.css?url";
 
 export const Route = createRootRoute({
@@ -70,7 +71,12 @@ function RootDocument({ children }) {
         <HeadContent />
       </head>
       <body data-react-root="true">
-        {children}
+        <SiteLanguageProvider>
+          <div className="flex h-dvh flex-col">
+            <SiteLanguageSelector />
+            <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
+          </div>
+        </SiteLanguageProvider>
         <Base44Scripts />
         <Scripts />
       </body>

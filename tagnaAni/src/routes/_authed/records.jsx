@@ -1,3 +1,4 @@
+import { useSiteLanguage } from "@/lib/siteLanguage";
 const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
 
 import { useCallback, useEffect, useState } from "react";
@@ -43,6 +44,7 @@ function SectionTitle({ children, count }) {
 }
 
 function RecordsPage() {
+  const { t } = useSiteLanguage();
   const { user, isLoadingAuth } = useAuth();
   const uid = user?.id || "device";
 
@@ -165,7 +167,7 @@ function RecordsPage() {
     <div className="px-5 pt-9">
       <PageHeader
         eyebrow="Inventory & money"
-        title="Records"
+        title={t("Records")}
         action={
           <button
             type="button"
@@ -173,7 +175,7 @@ function RecordsPage() {
               setEditing(null);
               setDialogOpen(true);
             }}
-            aria-label="Add record"
+            aria-label={t("Add record")}
             className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-95"
           >
             <Plus className="h-5 w-5" strokeWidth={2} />
@@ -189,13 +191,11 @@ function RecordsPage() {
       </div>
 
       <section className="mt-8">
-        <SectionTitle count={records.length}>Crop cycles</SectionTitle>
+        <SectionTitle count={records.length}>{t("Crop cycles")}</SectionTitle>
         {records.length === 0 ? (
           <div className="rounded-[1.35rem] border border-dashed border-border bg-card/60 p-6 text-center">
-            <p className="font-display text-[17px]">No crop records yet</p>
-            <p className="mx-auto mt-2 max-w-[240px] text-[12.5px] leading-relaxed text-muted-foreground">
-              Add what you planted, the seed you hold and the harvest so far. Advice then follows your own numbers.
-            </p>
+            <p className="font-display text-[17px]">{t("No crop records yet")}</p>
+            <p className="mx-auto mt-2 max-w-[240px] text-[12.5px] leading-relaxed text-muted-foreground">{t("Add what you planted, the seed you hold and the harvest so far. Advice then follows your own numbers.")}</p>
           </div>
         ) : (
           <div className="space-y-2.5">
@@ -215,13 +215,11 @@ function RecordsPage() {
       </section>
 
       <section className="mt-8">
-        <SectionTitle count={transactions.length}>Money entries</SectionTitle>
+        <SectionTitle count={transactions.length}>{t("Money entries")}</SectionTitle>
         {transactions.length === 0 ? (
           <div className="rounded-[1.35rem] border border-dashed border-border bg-card/60 p-6 text-center">
-            <p className="font-display text-[17px]">Keep the books light</p>
-            <p className="mx-auto mt-2 max-w-[240px] text-[12.5px] leading-relaxed text-muted-foreground">
-              Log fertilizer, seeds, labour and every sale. Your expenses and revenue totals build themselves.
-            </p>
+            <p className="font-display text-[17px]">{t("Keep the books light")}</p>
+            <p className="mx-auto mt-2 max-w-[240px] text-[12.5px] leading-relaxed text-muted-foreground">{t("Log fertilizer, seeds, labour and every sale. Your expenses and revenue totals build themselves.")}</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -232,9 +230,7 @@ function RecordsPage() {
         )}
       </section>
 
-      <p className="mt-8 text-center text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
-        Records save on this device first
-      </p>
+      <p className="mt-8 text-center text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">{t("Records save on this device first")}</p>
 
       <AddRecordDialog
         open={dialogOpen}
