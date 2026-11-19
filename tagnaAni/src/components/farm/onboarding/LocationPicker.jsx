@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Search, MapPin, Check } from "lucide-react";
 import { isPhilippineLand, localLocations, lookupLocations } from "@/lib/locations";
+import { tagnaRequest } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
 
 const field = "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm";
@@ -11,6 +12,7 @@ export default function LocationPicker({ value, onChange }) {
   const [status, setStatus] = useState("");
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
+  const [checking, setChecking] = useState(false);
   const [coordinateError, setCoordinateError] = useState("");
   const term = query.trim();
 
@@ -39,7 +41,7 @@ export default function LocationPicker({ value, onChange }) {
   const options = [...new Map([...remote, ...localLocations(term)]
     .map((location) => [`${location.name}:${location.lat}:${location.lon}`, location])).values()];
 
-  function checkCoordinates() {
+  async function checkCoordinates() {
     const lat = Number(latitude);
     const lon = Number(longitude);
     if (!latitude.trim() || !longitude.trim() || !Number.isFinite(lat) || !Number.isFinite(lon)) {
@@ -51,7 +53,18 @@ export default function LocationPicker({ value, onChange }) {
       return;
     }
     setCoordinateError("");
-    onChange({ name: `${lat.toFixed(5)}, ${lon.toFixed(5)}`, province: "", region: "Philippines", lat, lon });
+    setChecking(true);
+    let location;
+    try {
+      ({ location } = await tagnaRequest("/location/reverse", { lat, lon }));
+    } catch {
+      // Retain the verified point if the place-name lookup is temporarily unavailable.
+    } finally {
+      setChecking(false);
+    }
+    onChange({ name: location?.name || `${lat.toFixed(5)}, ${lon.toFixed(5)}`,
+      province: location?.province || "", region: location?.region || "Philippines", lat, lon, coordinateSelection: Boolean(location?.name) });
+    if (!location) setCoordinateError("Coordinates are valid. The English place name is unavailable.");
   }
 
   return (
@@ -62,7 +75,7 @@ export default function LocationPicker({ value, onChange }) {
         <input value={query} maxLength={120} onChange={(event) => setQuery(event.target.value)}
           placeholder="Town, province, or ZIP code" className={cn(field, "pl-9 text-base")} />
       </label>
-      {value && <p className="flex items-center gap-2 text-sm"><Check size={16} /> Selected: {value.name}</p>}
+      {value && <p className="flex items-center gap-2 text-sm"><Check size={16} /> Selected: {value.coordinateSelection ? `${value.lat.toFixed(5)}, ${value.lon.toFixed(5)} (${value.name})` : value.name}</p>}
       {status && <p role="status" className="text-sm">{status}</p>}
       {options.length > 0 && (
         <div className="no-scrollbar max-h-56 space-y-1.5 overflow-y-auto">
@@ -86,7 +99,8 @@ export default function LocationPicker({ value, onChange }) {
           <label>Longitude<input className={field} value={longitude} inputMode="decimal" placeholder="124.24520"
             onChange={(event) => { setLongitude(event.target.value); setCoordinateError(""); }} /></label>
         </div>
-        <button type="button" onClick={checkCoordinates} className="mt-2 rounded-lg border border-primary/50 px-3 py-2">Check and use coordinates</button>
+        <button type="button" onClick={checkCoordinates} disabled={checking} className="mt-2 rounded-lg border border-primary/50 px-3 py-2">{checking ? "Looking up place…" : "Check and use coordinates"}</button>
+        <p className="mt-2 text-xs">Place names from <a className="underline" href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>.</p>
         {coordinateError && <p role="alert" className="mt-2 text-destructive">{coordinateError}</p>}
       </details>
     </div>

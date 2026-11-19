@@ -80,3 +80,20 @@ test("advisory formats real, partial, and unavailable provider data without samp
   assert.match(mati, /Farm advice/);
   assert.doesNotMatch(mati, /420|350|68%/);
 });
+
+test("advisory syntax accepts one or two pipes and preserves a barangay prefix", () => {
+  const expected = { kind: "advisory", city: "Iligan City", crop: "Rice (palay)", problem: "drought", lang: "ENG" };
+  assert.deepEqual(parseSms("ani iligan city | rice drought"), expected);
+  assert.deepEqual(parseSms("ANI Iligan City | rice | drought"), expected);
+  for (const divider of [" ", " | "]) {
+    assert.deepEqual(parseSms(`ani bagong silang iligan city | rice${divider}drought`),
+      { ...expected, locality: "bagong silang iligan city" });
+  }
+  assert.equal(parseSms("bagong silang iligan city | rice | drought"), null);
+  assert.equal(parseSms("ANI constructor RICE DROUGHT").kind, "help");
+  assert.equal(parseSms("ANI 9200 | sweet potato yellow leaves").crop, "Sweet potato");
+  assert.equal(smsHelp("BIS").includes("\n\nMga tanom:"), true);
+  assert.equal(smsHelp("BIS").includes("\n\nKasagarang problema sa uma:"), true);
+  assert.equal(smsHelp("ENG").includes("\n\nCrop presets:"), true);
+  assert.equal(smsHelp("TAG").includes("\n\nKaraniwang problema sa bukid:"), true);
+});

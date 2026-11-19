@@ -1,0 +1,38 @@
+name: Tagna-Ani daily SMS
+
+on:
+  schedule:
+    - cron: '0,15,30,45 22 * * *'
+  workflow_dispatch:
+
+permissions: {}
+concurrency:
+  group: tagna-ani-daily-sms
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SMS_DAILY_SECRET: ${{ secrets.SMS_DAILY_SECRET }}
+      SMS_SERVICE_URL: ${{ vars.SMS_SERVICE_URL }}
+    steps:
+      - name: Drain the Philippine-time reminder queue
+        shell: bash
+        run: |
+          if [[ -z "$SMS_DAILY_SECRET" ]]; then
+            echo "Configure the SMS_DAILY_SECRET repository secret to enable delivery."
+            exit 0
+          fi
+          service="${SMS_SERVICE_URL:-https://tagna-ani-app.onrender.com}"
+          for attempt in $(seq 1 160); do
+            result=$(curl --fail --silent --show-error --retry 2 --retry-max-time 110 --max-time 85 \
+              -H "Authorization: Bearer $SMS_DAILY_SECRET" \
+              -H 'Content-Type: application/json' -d '{}' "${service%/}/__tagna/sms/daily")
+            pending=$(jq -er '.pending | select(type == "number")' <<< "$result")
+            if [[ "$pending" -eq 0 ]]; then exit 0; fi
+            delay=$(jq -r '((.retryAfterMs // 6500) / 1000 | ceil) | [. , 1] | max' <<< "$result")
+            sleep "$delay"
+          done
+          echo "Some SMS messages are still queued. The next scheduled run will resume."

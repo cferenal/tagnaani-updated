@@ -112,6 +112,10 @@ function ProfilePage() {
             <p className="mt-1 text-[13px] font-medium text-[#7F3E00]">
               {profile.city}
               {profile.province ? ` · ${profile.province}` : ""}
+              {Number.isFinite(profile.latitude) && Number.isFinite(profile.longitude) &&
+                !/^-?\d+(?:\.\d+)?,/.test(profile.city) && (
+                <span className="block text-xs">{profile.latitude.toFixed(5)}, {profile.longitude.toFixed(5)}</span>
+              )}
             </p>
             <div className="mt-4 flex items-center gap-2 border-t border-[#643100]/20 pt-3.5 text-[12.5px] font-semibold text-[#643100]">
               <Ruler className="h-4 w-4 text-[#643100]" strokeWidth={1.8} />

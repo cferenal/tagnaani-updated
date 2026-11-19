@@ -29,7 +29,7 @@ export function SmsSettings() {
   return (
     <section className="card-soft mt-6 space-y-3 p-4 text-sm">
       <h2 className="flex items-center gap-2 font-display text-lg font-bold"><BellRing size={17} /> SMS settings</h2>
-      <p>Verify a Philippine mobile number to use SMS recovery and daily reminders.</p>
+      <p>Verify a Philippine mobile number for SMS recovery and daily reminders scheduled for 6:00 a.m. Philippine time.</p>
       {user?.pendingPhone && <p>An administrator assigned {user.pendingPhone}. Verify it to enable SMS recovery.</p>}
       {user?.phone && <p>Verified number ending in <strong>{user.phone.slice(-4)}</strong>.</p>}
       <form className="space-y-2" onSubmit={(event) => {

@@ -73,13 +73,22 @@ export async function syncFarmProfile(profile) {
   if (!profile?.onboarded) return;
   try {
     await tagnaRequest("/profile", {
-      city: profile.city, crop: profile.crops?.[0], problem: profile.problems?.[0],
+      name: profile.farmer_name, city: profile.city, crop: profile.crops?.[0], problem: profile.problems?.[0],
       patchVersion: profile.patchVersion, crops: profile.crops, problems: profile.problems,
       location: { name: profile.city, province: profile.province, region: profile.region,
         lat: profile.latitude, lon: profile.longitude },
     });
   } catch {
     // Retain the browser's farm profile while the server is unreachable.
+  }
+}
+
+export async function syncFarmName(profile) {
+  if (!profile?.farmer_name) return;
+  try {
+    await tagnaRequest("/profile/name", { name: profile.farmer_name });
+  } catch {
+    // Keep the local name available offline.
   }
 }
 

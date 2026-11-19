@@ -1,3 +1,4 @@
+import { Announcements } from "@/components/farm/Announcements";
 import "@/api/base44Client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
@@ -10,7 +11,7 @@ import {
   Sprout,
 } from "lucide-react";
 
-import { db } from "@/api/base44Client";
+import { db, syncFarmName } from "@/api/base44Client";
 import {
   getCropRotationPlan,
   getFarmWeather,
@@ -96,6 +97,7 @@ function HomePage() {
       }
 
       setProfile(currentProfile);
+      void syncFarmName(currentProfile);
       cacheSet(`profile:${uid}`, currentProfile);
 
       if (rRes.status === "fulfilled") {
@@ -179,6 +181,7 @@ function HomePage() {
   return (
     <div className="w-full max-w-full overflow-x-hidden px-4 pt-7">
       {/* TAGNA-ANI BRAND BANNER & LOGO */}
+      <Announcements />
       <div className="mb-5 rounded-2xl border border-[#643100]/30 bg-[#EACAAE] px-3.5 py-3 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2.5">

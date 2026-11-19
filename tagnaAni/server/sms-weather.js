@@ -9,6 +9,7 @@ async function cachedLookup(key, duration, load) {
     console.warn("Tagna-Ani SMS data unavailable:", key.split(":")[0], error.code || error.name);
     return null;
   });
+  if (cache.size >= 500 && !cache.has(key)) cache.delete(cache.keys().next().value);
   cache.set(key, { value, until: Date.now() + duration });
   if (!await value && cache.get(key)?.value === value) cache.get(key).until = Date.now() + 30_000;
   return value;
@@ -21,8 +22,8 @@ async function json(url, params, options = {}) {
 }
 
 export async function forecast(location) {
-  const { lat, lon, name } = location;
-  const open = await cachedLookup(`Open-Meteo:${name}`, 10 * 60_000, async () => {
+  const { lat, lon } = location;
+  const open = await cachedLookup(`Open-Meteo:${lat.toFixed(4)},${lon.toFixed(4)}`, 10 * 60_000, async () => {
     const { current, daily } = await json("https://api.open-meteo.com/v1/forecast", {
       latitude: lat, longitude: lon, timezone: "Asia/Manila", forecast_days: 1,
       current: forecastFields.join(","), daily: "precipitation_probability_max",
@@ -37,7 +38,7 @@ export async function forecast(location) {
     return { ...weather, source: "Open-Meteo" };
   });
   if (open) return open;
-  return cachedLookup(`MET Norway:${name}`, 30 * 60_000, async () => {
+  return cachedLookup(`MET Norway:${lat.toFixed(4)},${lon.toFixed(4)}`, 30 * 60_000, async () => {
     const result = await json("https://api.met.no/weatherapi/locationforecast/2.0/compact", {
       lat: lat.toFixed(4), lon: lon.toFixed(4),
     }, { headers: { "User-Agent": "Tagna-Ani/1.0 (tagna.aniapp@gmail.com)" } });
@@ -52,7 +53,7 @@ export async function forecast(location) {
 }
 
 export function monthlyClimate(location) {
-  return cachedLookup(`NASA POWER:${location.name}`, 24 * 60 * 60_000, async () => {
+  return cachedLookup(`NASA POWER:${location.lat.toFixed(4)},${location.lon.toFixed(4)}`, 24 * 60 * 60_000, async () => {
     const result = await json("https://power.larc.nasa.gov/api/temporal/climatology/point", {
       community: "AG", latitude: location.lat, longitude: location.lon,
       parameters: "GWETROOT,PRECTOTCORR,T2M_MAX", format: "JSON",

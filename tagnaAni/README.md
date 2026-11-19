@@ -105,12 +105,38 @@ Render Free, also test after the service has been idle. Cold starts can outlast
 SMS provider webhook deadlines. Use always-on compute or a provider-facing
 durable queue with retries if you need reliable delivery.
 
-For daily updates, configure a scheduler to POST an empty JSON object to
-`/__tagna/sms/daily` with `Content-Type: application/json` and an Authorization
-Bearer token matching `SMS_DAILY_SECRET`. Schedule in Asia/Manila and invoke
-repeatedly during the delivery window to drain batches of up to four.
-Set the secret only when a scheduler is in place. An advisory request does not
-subscribe the sender. Use `ANI ALERTS ON` after an advisory request to opt in.
+### Daily reminders, announcements, and redeploys
+
+To turn on automatic delivery, include the root-level
+`.github/workflows/daily-sms.yml` file in your GitHub default branch
+alongside the `tagnaAni` folder. Add the same fresh random value as
+`SMS_DAILY_SECRET` in **Render → Environment** and **GitHub → Settings →
+Secrets and variables → Actions → New repository secret**. Use a different
+value from `SMS_INBOUND_SECRET`. The workflow targets
+`https://tagna-ani-app.onrender.com` by default. If your service URL differs,
+set the GitHub Actions variable `SMS_SERVICE_URL`.
+
+The workflow queues daily SMS at 6:00 a.m. Philippine time (22:00 UTC the
+previous day). It has retry runs within the next hour. GitHub scheduling and
+Render Free cold starts can delay delivery. GitHub Actions must be enabled,
+and the MacroDroid gateway needs cellular service, internet, and SMS
+permission. Opt in from the app with a verified number or send `ANI ALERTS ON`
+after a successful advisory SMS. Run the workflow manually after 6 a.m. to
+check delivery with a test subscriber. Subscribers can text `ANI ALERTS OFF`
+to stop.
+
+In Admin, open **Messages and deployment**. **Daily reminder subscribers · SMS**
+queues a custom SMS to opted-in numbers. Keep the tab open to drain the queue.
+If interrupted, use **Resume pending SMS broadcast**. The scheduled worker
+also resumes pending messages. The relay requests are spaced out. An accepted
+request indicates relay acceptance. Check the destination phone for delivery.
+**All app accounts · dashboard announcement** publishes a notice with clickable
+HTTPS links for signed-in app users.
+
+To enable **Redeploy on Render**, copy the service's deploy hook from **Render →
+Settings** and save it as `RENDER_DEPLOY_HOOK_URL` in Render's environment.
+The primary admin can type `REDEPLOY` to request the latest GitHub commit
+from the linked branch. Keep the hook URL private.
 
 ### Android APK
 

@@ -1,5 +1,7 @@
 import { createHash, randomBytes, randomInt, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import { isPhilippineLand } from "../src/lib/locations.js";
+import { reverseLocation } from "./reverse-location.js";
+import { drainSms, enqueue, summaries } from "./reminders.js";
 import { openStore } from "./store.js";
 import { advisory, equalSecret, normalizePhone, parseSms, sendSms, smsHelp, SMS_LANGUAGE_SUFFIX, verifyTwilio } from "./sms.js";
 
@@ -23,6 +25,16 @@ function audit(state, actor, target, action, changes = []) {
   ];
 }
 
+function syncReminderFarm(state, user) {
+  const subscription = state.subscriptions[user.phone];
+  const farm = user.farm;
+  if (!subscription?.subscribed || !farm?.city || !farm.crop || !farm.problem) return;
+  const { location } = farm;
+  Object.assign(subscription, { city: farm.city, crop: farm.crop, problem: farm.problem,
+    lat: location?.lat, lon: location?.lon, province: location?.province });
+  delete subscription.locality;
+}
+
 function updateFarmer(state, actor, target, data) {
   const changes = [];
   const farm = target.farm || {};
@@ -33,6 +45,7 @@ function updateFarmer(state, actor, target, data) {
     patch.location = { name: shortText(name), province: shortText(province), region: shortText(region), lat, lon };
     changes.push({ field: "Location", before: farm.city, after: `${patch.location.name} (${lat}, ${lon})` });
     farm.city = patch.location.name;
+    farm.location = patch.location;
   }
   for (const [key, field, plural] of [["crop", "Current crop", "crops"], ["problem", "Current problem", "problems"]]) {
     if (!Object.hasOwn(data, key)) continue;
@@ -62,6 +75,7 @@ function updateFarmer(state, actor, target, data) {
   }
   if (changes.some(({ field }) => field !== "Mobile number")) {
     target.farm = farm;
+    syncReminderFarm(state, target);
     target.farmPatch = { ...patch, version: randomUUID() };
   }
   if (changes.length) audit(state, actor, target, "Edited farmer details", changes);
@@ -149,13 +163,13 @@ function applySmsCommand(state, phone, command, message, now) {
   }
   if (command.kind === "help") return smsHelp(command.lang);
   if (command.kind === "alerts") {
-    if (command.on && !process.env.SMS_DAILY_SECRET) return "Tagna-Ani: Daily reminders are currently unavailable.";
+
     if (!entry && command.on) return "Tagna-Ani: Send an advisory request first. " + smsHelp(command.lang);
     if (entry) {
       entry.subscribed = command.on;
       if (command.on && SMS_LANGUAGE_SUFFIX.test(message.trim())) entry.lang = command.lang;
     }
-    return command.on ? "Tagna-Ani: Daily reminders are on. Text ANI ALERTS OFF to stop." : "Tagna-Ani: Daily reminders are off.";
+    return command.on ? "Tagna-Ani: Subscribed to 6 AM Philippine-time reminders. Text ANI ALERTS OFF to stop." : "Tagna-Ani: Daily reminders are off.";
   }
   state.subscriptions[phone] = { ...command, subscribed: entry?.subscribed || false, lastDaily: entry?.lastDaily };
   return command;
@@ -263,9 +277,9 @@ export function createTagnaApi() {
           const record = { reply, lease: now + minute, until: now + 24 * 60 * minute };
           state.messages[messageId] = record;
           if (command.kind === "advisory") {
-            const { city, crop, problem, lang } = command;
+            const { city, locality, crop, problem, lang } = command;
             state.smsQueries = [
-              { id: messageId, phone, at: now, city, crop, problem, lang, status: "pending" },
+              { id: messageId, phone, at: now, city: locality || city, crop, problem, lang, status: "pending" },
               ...recentSmsQueries(state, now).slice(0, smsHistoryLimit - 1),
             ];
           }
@@ -293,22 +307,7 @@ export function createTagnaApi() {
 
       if (post && path === "/sms/daily") {
         if (!process.env.SMS_DAILY_SECRET || !equalSecret(req.headers.authorization, `Bearer ${process.env.SMS_DAILY_SECRET}`)) fail(403, "Forbidden.");
-        const day = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila", dateStyle: "short" }).format();
-        const pending = await change((state) => Object.entries(state.subscriptions)
-          .filter(([, info]) => info.subscribed && info.lastDaily !== day)
-          .slice(0, 4).map(([phone, info]) => {
-            info.lastDaily = day;
-            return [phone, info];
-          }));
-        const results = await Promise.allSettled(pending.map(async ([phone, info]) =>
-          sendSms(phone, await advisory(info) + "\nText ANI ALERTS OFF to stop.")));
-        await change((state) => results.forEach((result, i) => {
-          if (result.status === "rejected" && state.subscriptions[pending[i][0]]?.lastDaily === day) {
-            delete state.subscriptions[pending[i][0]].lastDaily;
-          }
-        }));
-        const sent = results.filter(({ status }) => status === "fulfilled").length;
-        return json(sent === pending.length ? 200 : 502, { sent, attempted: pending.length });
+        return json(200, await drainSms(change, true));
       }
 
       if (post && ["/login", "/register", "/reset/request", "/reset/confirm"].includes(path)) {
@@ -371,6 +370,9 @@ export function createTagnaApi() {
       const token = (req.headers.cookie || "").match(/(?:^|;\s*)tagna_session=([a-f0-9]{64})(?:;|$)/)?.[1];
       const sessionId = token && hash(token);
       let resetDelivery;
+      let reverse;
+      let deployHook;
+      let drain;
       const output = await change((state) => {
         const session = sessionId && state.sessions[sessionId];
         const user = session?.until > Date.now() && state.users[session.key];
@@ -393,12 +395,31 @@ export function createTagnaApi() {
           return { ok: true };
         }
         if (user.mustChangePassword) fail(403, "Change your temporary password before continuing.");
+        if (path === "/location/reverse" && post) {
+          const { lat, lon } = data;
+          if (!isPhilippineLand(lat, lon)) fail(400, "Enter coordinates on Philippine land.");
+          limit(`reverse:${user.id}`, 12, 15 * minute);
+          reverse = { lat, lon };
+          return {};
+        }
+        if (path === "/announcements" && !post) return { items: state.announcements || [] };
+        if (path === "/profile/name" && post) {
+          const name = shortText(data.name);
+          if (name) user.farm = { ...user.farm, name };
+          return { ok: true };
+        }
         if (path === "/profile" && !post) return { patch: user.farmPatch || null };
         if (path === "/profile" && post) {
           if (user.farmPatch && data.patchVersion !== user.farmPatch.version) {
             fail(409, "An administrator updated your farm details. Reload your profile before saving.");
           }
-          user.farm = { city: shortText(data.city), crop: shortText(data.crop), problem: shortText(data.problem) };
+          const point = data.location;
+          const location = point && isPhilippineLand(point.lat, point.lon)
+            ? { name: shortText(point.name), province: shortText(point.province), region: shortText(point.region), lat: point.lat, lon: point.lon }
+            : user.farm?.location;
+          user.farm = { name: shortText(data.name) || user.farm?.name, city: shortText(data.city),
+            crop: shortText(data.crop), problem: shortText(data.problem), location };
+          syncReminderFarm(state, user);
           if (user.farmPatch) {
             const { patchVersion, location, crops, problems } = data;
             user.farmPatch = { version: patchVersion,
@@ -429,12 +450,17 @@ export function createTagnaApi() {
         if (path === "/subscription" && post) {
           if (!user.phone) fail(400, "Verify your mobile number first.");
           if (typeof data.subscribed !== "boolean") fail(400, "Choose a subscription status.");
-          if (data.subscribed && !process.env.SMS_DAILY_SECRET) fail(503, "Daily reminders are currently unavailable.");
+
           const current = state.subscriptions[user.phone];
           const farm = user.farm;
           if (data.subscribed && !current && !(farm?.city && farm?.crop && farm?.problem)) fail(400, "Complete your farm setup first.");
           if (current || data.subscribed) {
-            state.subscriptions[user.phone] = { ...(farm || {}), ...current, subscribed: data.subscribed };
+            state.subscriptions[user.phone] = {
+              ...current, ...(!current && { city: farm?.city, crop: farm?.crop, problem: farm?.problem,
+                lat: farm?.location?.lat, lon: farm?.location?.lon, province: farm?.location?.province }),
+              subscribed: data.subscribed,
+            };
+            if (data.subscribed) syncReminderFarm(state, user);
           }
           return { user: publicUser(user, state) };
         }
@@ -446,6 +472,10 @@ export function createTagnaApi() {
             const active = new Set(Object.values(state.sessions)
               .filter(({ until }) => until > Date.now()).map(({ id }) => id));
             return {
+              canDeploy: session.key === ownerKey() && Boolean(process.env.RENDER_DEPLOY_HOOK_URL),
+              schedulerConfigured: Boolean(process.env.SMS_DAILY_SECRET),
+              subscriberCount: Object.values(state.subscriptions).filter(({ subscribed }) => subscribed).length,
+              jobs: summaries(state),
               smsHistory: groupedSmsQueries(state),
               auditLog: state.adminAudit || [],
               adminCount: countAdmins(state),
@@ -455,6 +485,7 @@ export function createTagnaApi() {
                 ...publicUser(entry, state),
                 phone: entry.phone?.slice(-4) || null,
                 pendingPhone: entry.pendingPhone?.slice(-4) || null,
+                name: entry.farm?.name || "", location: entry.farm?.location || entry.farmPatch?.location || null,
                 city: entry.farm?.city || "", crop: entry.farm?.crop || "", problem: entry.farm?.problem || "",
                 online: active.has(entry.id),
               })),
@@ -462,6 +493,45 @@ export function createTagnaApi() {
                 .filter(([phone, info]) => info.subscribed && !linked.has(phone))
                 .map(([phone, { city, crop, problem }]) => ({ mobileEnding: phone.slice(-4), city, crop, problem })),
             };
+          }
+          if (path === "/admin/redeploy" && post) {
+            if (session.key !== ownerKey()) fail(403, "Only the primary admin can redeploy.");
+            if (data.confirm !== "REDEPLOY") fail(400, "Type REDEPLOY to confirm.");
+            try {
+              deployHook = new URL(process.env.RENDER_DEPLOY_HOOK_URL);
+              if (deployHook.origin !== "https://api.render.com" || !deployHook.pathname.startsWith("/deploy/")) throw new Error();
+            } catch {
+              fail(503, "Configure the Render deploy hook first.");
+            }
+            if ((state.lastDeployRequest || 0) > Date.now() - 5 * minute) fail(429, "Wait five minutes before requesting another deployment.");
+            state.lastDeployRequest = Date.now();
+            audit(state, user, { username: "Tagna-Ani" }, "Requested redeploy");
+            return { ok: true };
+          }
+          if (path === "/admin/broadcast" && post) {
+            const sms = data.audience === "sms";
+            const message = typeof data.message === "string" ? data.message.trim() : "";
+            if (!sms && data.audience !== "app") fail(400, "Choose an audience.");
+            if (data.confirm !== "SEND" || !message || message.length > (sms ? 700 : 2000)) {
+              fail(400, "Enter a message within the limit and type SEND to confirm.");
+            }
+            limit(`broadcast:${user.id}`, 3, 60 * minute);
+            if (sms) {
+              if (!process.env.MACRODROID_REPLY_URL && !process.env.TWILIO_FROM_NUMBER) fail(503, "Configure the SMS relay first.");
+              if (summaries(state).some(({ kind, pending }) => kind === "broadcast" && pending > 0)) fail(409, "An SMS broadcast is already queued.");
+              const job = enqueue(state, "broadcast", message);
+              if (!job.recipients.length) fail(400, "There are no SMS reminder subscribers.");
+              audit(state, user, { username: "SMS subscribers" }, "Queued SMS broadcast",
+                [{ field: "Recipients", after: String(job.recipients.length) }]);
+              return { count: job.recipients.length };
+            }
+            state.announcements = [{ id: randomUUID(), message, at: Date.now() }, ...(state.announcements || []).slice(0, 9)];
+            audit(state, user, { username: "All app accounts" }, "Published app announcement");
+            return { ok: true };
+          }
+          if (path === "/admin/broadcast/drain" && post) {
+            drain = true;
+            return {};
           }
           if (path === "/admin/create" && post) {
             if (session.key !== ownerKey()) fail(403, "Only the primary administrator can create admin accounts.");
@@ -509,6 +579,12 @@ export function createTagnaApi() {
         }
         fail(404, "Route not found.");
       });
+      if (reverse) return json(200, { location: await reverseLocation(reverse.lat, reverse.lon) });
+      if (drain) return json(200, await drainSms(change));
+      if (deployHook) {
+        const response = await fetch(deployHook, { method: "POST", redirect: "error", signal: AbortSignal.timeout(8000) });
+        if (!response.ok) fail(502, "Render did not accept this deploy request.");
+      }
       if (resetDelivery) {
         await sendSms(resetDelivery.phone, `Tagna-Ani reset code: ${resetDelivery.code}. Expires in 10 minutes. Keep this code private.`);
       }

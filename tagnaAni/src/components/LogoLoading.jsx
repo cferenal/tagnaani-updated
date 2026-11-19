@@ -1,7 +1,12 @@
 export function LogoLoading() {
   return (
     <div className="grid h-full min-h-64 place-items-center" role="status" aria-label="Loading Tagna-Ani">
-      <img className="h-24 w-24 rounded-3xl shadow-md motion-safe:animate-pulse" src="/logo.png" alt="" width="96" height="96" />
+      <div className="space-y-2 px-4 text-center">
+        <img className="mx-auto h-24 w-24 rounded-3xl shadow-md motion-safe:animate-pulse" src="/logo.png" alt="" width="96" height="96" />
+        <p className="font-display text-2xl font-bold">Tagna-Ani</p>
+        <p className="font-semibold">Empowering Farmers Through Knowledge and Technology.</p>
+        <p className="text-sm italic" lang="fil">Kaalaman at teknolohiya para sa magsasaka.</p>
+      </div>
     </div>
   );
 }

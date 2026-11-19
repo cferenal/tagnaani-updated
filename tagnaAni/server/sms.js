@@ -22,8 +22,11 @@ export function smsHelp(lang = "ENG") {
     format,
     `${example}: ANI 9200 RICE DROUGHT`,
     `${spaces}: ANI Iligan City | Sweet potato | Pest infestation`,
+    "",
     `${crops}: ${CROPS.join(", ")}`,
+    "",
     `${problems}: ${(problemLabels[lang] || PROBLEMS).join(", ")}`,
+    "",
     other,
   ].join("\n");
 }
@@ -46,19 +49,29 @@ export function parseSms(message) {
   if (/^VERIFY \d{8}$/i.test(body)) return { kind: "verify", code: body.slice(-8) };
 
   const pipe = body.split("|").map((part) => part.trim());
+  if (pipe.length > 3 || pipe.some((part) => !part) || message.length > 480) return { kind: "help", lang };
   const words = body.split(/\s+/);
-  const [place, rawCrop, problem] = pipe.length === 3
-    ? pipe
-    : [words[0], words[1], words.slice(2).join(" ")];
-  const city = MINDANAO_POSTAL_CODES[place] || place?.replaceAll("_", " ");
-  const location = MINDANAO_LOCATIONS.find(({ name }) =>
-    name.toLowerCase() === city?.toLowerCase() ||
-    name.toLowerCase().replace(/ city$/, "") === city?.toLowerCase());
-  if (!location || !rawCrop || !problem || /\|/.test(problem) || message.length > 480) return { kind: "help", lang };
+  const place = pipe.length > 1 ? pipe[0] : words[0];
+  const remainder = pipe.length === 2 ? pipe[1] : words.slice(1).join(" ");
+  const preset = [...CROPS, "palay"].sort((a, b) => b.length - a.length).find((name) =>
+    remainder.toLowerCase().startsWith(name.toLowerCase() + " "));
+  const [rawCrop, problem] = pipe.length === 3 ? pipe.slice(1)
+    : preset ? [preset, remainder.slice(preset.length).trim()]
+    : [remainder.split(/\s+/, 1)[0], remainder.replace(/^\S+\s*/, "")];
+  const placeLabel = place.replaceAll("_", " ").replace(/\s+/g, " ").trim();
+  const city = (Object.hasOwn(MINDANAO_POSTAL_CODES, placeLabel) ? MINDANAO_POSTAL_CODES[placeLabel] : placeLabel).toLowerCase();
+  const location = MINDANAO_LOCATIONS.find(({ name }) => {
+    const full = name.toLowerCase();
+    const short = full.replace(/ city$/, "");
+    return city === full || city === short || (pipe.length > 1 && city.endsWith(` ${full}`));
+  });
+  if (!location || !rawCrop || !problem) return { kind: "help", lang };
+  const locality = city !== placeLabel.toLowerCase() || [location.name.toLowerCase(), location.name.toLowerCase().replace(/ city$/, "")].includes(city)
+    ? null : placeLabel;
   const cropKey = rawCrop.replaceAll("_", " ").toLowerCase();
   const crop = /^rice$|^palay$/i.test(cropKey) ? "Rice (palay)"
     : CROPS.find((name) => name.toLowerCase() === cropKey) || rawCrop.replaceAll("_", " ");
-  return { kind: "advisory", city: location.name, crop, problem, lang };
+  return { kind: "advisory", city: location.name, crop, problem, lang, ...(locality && { locality }) };
 }
 
 export function equalSecret(value, expected) {

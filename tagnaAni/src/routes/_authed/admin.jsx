@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createFileRoute, Link, redirect, useRouter } from "@tanstack/react-router";
 import { AdminFarmerEditor, AdminInvite } from "@/components/farm/AdminAccountForms";
+import { AdminDelivery } from "@/components/farm/AdminDelivery";
 import { tagnaRequest } from "@/api/base44Client";
 
 export const Route = createFileRoute("/_authed/admin")({
@@ -12,7 +13,10 @@ export const Route = createFileRoute("/_authed/admin")({
 });
 
 function AdminPage() {
-  const { users, smsOnly, smsHistory, auditLog, adminCount, adminLimit, canCreateAdmins } = Route.useLoaderData();
+  const { users, smsOnly, smsHistory, auditLog, adminCount, adminLimit, canCreateAdmins, canDeploy, schedulerConfigured, subscriberCount, jobs } = Route.useLoaderData();
+  const [tab, setTab] = useState("Farmers");
+  const farmers = users.filter(({ role }) => role !== "admin");
+  const admins = users.filter(({ role }) => role === "admin");
   const router = useRouter();
   const [editing, setEditing] = useState(null);
   const [target, setTarget] = useState(null);
@@ -38,16 +42,51 @@ function AdminPage() {
     }
   }
 
+  async function resolvePlace(account) {
+    const parts = account.city.match(/^(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)$/);
+    const lat = account.location?.lat ?? Number(parts?.[1]);
+    const lon = account.location?.lon ?? Number(parts?.[2]);
+    setBusy(true);
+    try {
+      const { location } = await tagnaRequest("/location/reverse", { lat, lon });
+      if (!location) {
+        setStatus("An English name is unavailable for this point.");
+        return;
+      }
+      await execute("/admin/edit", { userId: account.id, username: account.username, location: { ...location, lat, lon } }, "Place name updated.");
+    } catch (error) {
+      setStatus(error.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
       <Link to="/dashboard" className="text-sm underline">Back to dashboard</Link>
       <h1 className="font-display text-4xl font-bold">Manage accounts</h1>
-      <button type="button" className={button} onClick={() => router.invalidate()}>Refresh accounts and SMS history</button>
+      <nav aria-label="Admin sections" className="flex flex-wrap gap-2">
+        {["Farmers", "Administrators", "Action log", "SMS history", "Messages and deployment"].map((label) => (
+          <button key={label} type="button" aria-pressed={tab === label}
+            className={`${button} aria-pressed:bg-[#ead0b3] aria-pressed:font-bold`} onClick={() => setTab(label)}>{label}</button>
+        ))}
+      </nav>
+      <button type="button" className={button} onClick={() => router.invalidate()}>Refresh</button>
+      {status && <p role="status">{status}</p>}
+      {tab === "Administrators" && <section className="space-y-3">
+        <h2 className="font-display text-2xl font-bold">Administrators</h2>
+        <ul className="divide-y divide-[#643100]/20 rounded-xl border border-[#643100]/25 px-3">
+          {admins.map((user) => <li key={user.id} className="py-3">
+            <strong>{user.name || user.username}</strong>{user.name && <span> · @{user.username}</span>}
+            <span> · {user.mustChangePassword ? "Temporary password" : user.online ? "Signed in" : "Signed out"}</span>
+          </li>)}
+        </ul>
       {canCreateAdmins && <AdminInvite count={adminCount} limit={adminLimit} onCreated={() => router.invalidate()} />}
+      </section>}
+      {tab === "Farmers" && <>
       {editing && <AdminFarmerEditor key={editing.id} account={editing} busy={busy}
         onCancel={() => setEditing(null)}
         onSave={(values) => execute("/admin/edit", values, "Farmer details saved.")} />}
-      {status && <p role="status">{status}</p>}
       {target && <form className="space-y-3 rounded-xl border border-[#643100]/40 p-4" onSubmit={(event) => {
         event.preventDefault();
         execute("/admin/delete", { userId: target.id, username: target.username, confirm: confirmation }, "Account deleted.");
@@ -61,13 +100,20 @@ function AdminPage() {
       <div className="overflow-x-auto rounded-xl border border-[#643100]/25">
         <table className="w-full text-left text-sm">
           <thead className="bg-[#ead0b3]"><tr>
-            {["Username", "Location", "Crop", "Problem", "Daily SMS", "Mobile", "Session", "Actions"].map((label) =>
+            {["Name", "Username", "Location", "Crop", "Problem", "Daily SMS", "Mobile", "Session", "Actions"].map((label) =>
               <th key={label} scope="col" className="p-3">{label}</th>)}
           </tr></thead>
           <tbody>
-            {users.map((user) => <tr key={user.id} className="border-t border-[#643100]/20">
-              <th scope="row" className="p-3">{user.username}{user.role === "admin" && " (admin)"}</th>
-              <td className="p-3">{user.city || "—"}</td>
+            {farmers.map((user) => <tr key={user.id} className="border-t border-[#643100]/20">
+              <td className="p-3">{user.name || "—"}</td>
+              <th scope="row" className="p-3">{user.username}</th>
+              <td className="p-3">{user.location?.name || user.city || "—"}
+                {user.location && !/^-?\d/.test(user.location.name) && (
+                  <small className="block">{user.location.lat.toFixed(5)}, {user.location.lon.toFixed(5)}</small>
+                )}
+                {/^-?\d+(?:\.\d+)?,\s*-?\d/.test(user.city) && <button type="button" disabled={busy}
+                  className="block text-xs underline" onClick={() => resolvePlace(user)}>Look up English name</button>}
+              </td>
               <td className="p-3">{user.crop || "—"}</td>
               <td className="p-3">{user.problem || "—"}</td>
               <td className="p-3">{user.subscribed ? "On" : "Off"}</td>
@@ -87,6 +133,7 @@ function AdminPage() {
           </tbody>
         </table>
       </div>
+      <p className="text-xs">Looked-up place names from <a className="underline" href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>.</p>
       {smsOnly.length > 0 && (
         <section className="space-y-3">
           <h2 className="font-display text-2xl font-bold">SMS-only daily subscribers</h2>
@@ -106,10 +153,11 @@ function AdminPage() {
           </div>
         </section>
       )}
-      <section className="space-y-3">
+      </>}
+      {tab === "Action log" && <section className="space-y-3">
         <h2 className="font-display text-2xl font-bold">Admin action log</h2>
         {auditLog.length === 0 && <p>No admin actions recorded yet.</p>}
-        <ul className="divide-y divide-[#643100]/20">
+        <ul className="max-h-[65vh] overflow-y-auto divide-y divide-[#643100]/20">
           {auditLog.map(({ id, at, actor, target, action, changes }) => (
             <li key={id} className="break-words py-2 text-sm">
               <p className="font-semibold">{action} · {target}</p>
@@ -121,8 +169,8 @@ function AdminPage() {
             </li>
           ))}
         </ul>
-      </section>
-      <section className="space-y-3">
+      </section>}
+      {tab === "SMS history" && <section className="max-h-[72vh] space-y-3 overflow-y-auto">
         <h2 className="font-display text-2xl font-bold">SMS advisory history</h2>
         <p className="text-sm">Requests are grouped by sender. Shows up to 1,000 requests from the last 30 days. A relay acceptance does not confirm delivery to the phone.</p>
         {smsHistory.length === 0 && <p className="text-sm">No new SMS advisory requests recorded yet.</p>}
@@ -141,7 +189,10 @@ function AdminPage() {
             </ul>
           </details>
         ))}
-      </section>
+      </section>}
+      {tab === "Messages and deployment" &&
+        <AdminDelivery canDeploy={canDeploy} schedulerConfigured={schedulerConfigured}
+          subscriberCount={subscriberCount} jobs={jobs} reload={() => router.invalidate()} />}
     </main>
   );
 }

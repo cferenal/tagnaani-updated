@@ -13,6 +13,8 @@ const copy = {
     drought: "Check root-zone soil moisture before irrigating.",
     flood: "Inspect drainage and avoid working in flooded areas.",
     general: "Inspect affected plants and ask your local agriculture office for crop-specific advice.",
+    cornWet: "Move drying corn under cover before it gets wet.",
+    cornDry: "If the drying surface is dry, spread the corn outside and watch for sudden showers.",
     wet: "Delay fertilizer application or spraying if rain is imminent.",
     conditions: ["clear", "partly cloudy", "overcast", "fog", "rain", "thunderstorm"],
   },
@@ -25,6 +27,8 @@ const copy = {
     drought: "Susiha ang kaumog sa yuta duol sa gamot sa dili pa magpatubig.",
     flood: "Susiha ang agianan sa tubig ug likayi ang pagbuhat sa binahang lugar.",
     general: "Susiha ang apektadong tanom ug pangutana sa lokal nga opisina sa agrikultura.",
+    cornWet: "Ibalhin sa silong ang gibulad nga mais aron dili mabasa.",
+    cornDry: "Kon uga ang bularan, ibulad ang mais ug bantayi ang kalit nga ulan.",
     wet: "Ipalangan ang pag-abono o pag-spray kon duol nang moulan.",
     conditions: ["hayag", "medyo dag-om", "dag-om", "gabon", "ulan", "dalugdog"],
   },
@@ -37,6 +41,8 @@ const copy = {
     drought: "Suriin ang halumigmig ng lupa sa paligid ng ugat bago magpatubig.",
     flood: "Suriin ang daluyan ng tubig at iwasang magtrabaho sa binahang lugar.",
     general: "Suriin ang apektadong halaman at magtanong sa lokal na tanggapan ng agrikultura.",
+    cornWet: "Ilipat sa silong ang binibilad na mais bago ito mabasa.",
+    cornDry: "Kung tuyo ang bilaran, ibilad ang mais at bantayan ang biglaang ulan.",
     wet: "Ipagpaliban ang pag-abono o pag-spray kung malapit nang umulan.",
     conditions: ["maaliwalas", "bahagyang maulap", "maulap", "mahamog", "maulan", "may pagkulog"],
   },
@@ -72,9 +78,10 @@ function rotationOption(climate, crop, start) {
   return names.length >= 2 ? names.join(" -> ") : null;
 }
 
-export async function advisory({ city, crop, problem, lang }) {
+export async function advisory({ city, locality, crop, problem, lang, lat, lon, province }) {
   const words = copy[lang] || copy.ENG;
-  const location = MINDANAO_LOCATIONS.find(({ name }) => name === city);
+  const location = Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon, name: city, province }
+    : MINDANAO_LOCATIONS.find(({ name }) => name === city);
   const [weather, climate] = location ? await Promise.all([forecast(location), monthlyClimate(location)]) : [null, null];
   const wx = weather || {};
   const localMonth = new Intl.DateTimeFormat("en-CA", {
@@ -91,21 +98,26 @@ export async function advisory({ city, crop, problem, lang }) {
     /flood|baha|rain|ulan/i.test(problem) ? words.flood : words.general;
   const show = (value, unit) => number(value) ? `${Math.round(value)}${unit}` : words.unavailable;
   const rotation = rotationOption(climate, crop, `${year}-${month}`);
+  const wet = wx.chance >= 65 || wx.rain > 0 || wx.nextHourRain > 0;
+  const dry = number(wx.chance) && wx.chance <= 15 && wx.rain === 0;
+  const corn = /^(corn|mais)$/i.test(crop);
+  const weatherAdvice = corn && wet ? words.cornWet : corn && dry ? words.cornDry : wet ? words.wet : "";
+  const weatherNote = words.conditions[conditionIndex(wx)];
   const sources = [wx.source, climate && "NASA POWER"].filter(Boolean);
   return [
     words.greeting,
     "",
-    `${words.local} ${[city, location?.province].filter(Boolean).join(", ")}.`,
-    words.conditions[conditionIndex(wx)],
+    `${words.local} ${[locality || city, location?.province].filter(Boolean).join(", ")}.`,
+    locality ? `Weather: ${city}` : null,
     `${words.temp}: ${show(wx.temp, " C")}`,
     `${words.heat}: ${show(heat, " C")}`,
     `${words.humidity}: ${show(wx.humidity, "%")}`,
     `${words.rain}: ${[amount, chance].filter(Boolean).join("; ") || words.unavailable}`,
-    `${words.solar}: ${show(wx.radiation, " W/m^2")}`,
+    `${words.solar}: ${show(wx.radiation, " W/m^2")}${weatherNote ? `, ${weatherNote}` : ""}`,
     `CO2: ${words.unmeasured}`,
     `${words.root}: ${number(wetness) ? `${Math.round(wetness * 100)}% (${words.historical})` : words.unavailable}`,
     "",
-    `${words.advice} (${crop} - ${problem}): ${tip}${wx.chance >= 70 || wx.nextHourRain > 0 ? " " + words.wet : ""}`,
+    `${words.advice} (${crop} - ${problem}): ${tip}${weatherAdvice ? " " + weatherAdvice : ""}`,
     `${words.rotation}: ${rotation || words.unavailable}`,
     words.reminder,
     sources.length ? sources.join(" / ") : null,
