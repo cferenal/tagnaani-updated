@@ -1,7 +1,7 @@
 import { createHash, randomBytes, randomInt, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import { isPhilippineLand } from "../src/lib/locations.js";
 import { openStore } from "./store.js";
-import { advisory, equalSecret, normalizePhone, parseSms, sendSms, SMS_HELP, verifyTwilio } from "./sms.js";
+import { advisory, equalSecret, normalizePhone, parseSms, sendSms, smsHelp, SMS_LANGUAGE_SUFFIX, verifyTwilio } from "./sms.js";
 
 const hash = (value) => createHash("sha256").update(value).digest("hex");
 const usernameKey = (value) => String(value ?? "").trim().toLowerCase();
@@ -147,13 +147,13 @@ function applySmsCommand(state, phone, command, message, now) {
     delete user.reset;
     return "Tagna-Ani: Your mobile number is verified. Return to the app to continue.";
   }
-  if (command.kind === "help") return SMS_HELP;
+  if (command.kind === "help") return smsHelp(command.lang);
   if (command.kind === "alerts") {
     if (command.on && !process.env.SMS_DAILY_SECRET) return "Tagna-Ani: Daily reminders are currently unavailable.";
-    if (!entry && command.on) return "Tagna-Ani: Send an advisory request first. " + SMS_HELP;
+    if (!entry && command.on) return "Tagna-Ani: Send an advisory request first. " + smsHelp(command.lang);
     if (entry) {
       entry.subscribed = command.on;
-      if (command.on && /\s+(BIS|TAG|ENG)$/i.test(message.trim())) entry.lang = command.lang;
+      if (command.on && SMS_LANGUAGE_SUFFIX.test(message.trim())) entry.lang = command.lang;
     }
     return command.on ? "Tagna-Ani: Daily reminders are on. Text ANI ALERTS OFF to stop." : "Tagna-Ani: Daily reminders are off.";
   }

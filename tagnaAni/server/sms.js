@@ -1,7 +1,32 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { CROPS, MINDANAO_LOCATIONS, MINDANAO_POSTAL_CODES } from "../src/lib/farmData.js";
+import { CROPS, PROBLEMS, MINDANAO_LOCATIONS, MINDANAO_POSTAL_CODES } from "../src/lib/farmData.js";
 
-export const SMS_HELP = "Text ANI <ZIP/CITY> <CROP> <PROBLEM>. Example: ANI 9200 RICE DROUGHT. For multi-word names: ANI Iligan City | Sweet potato | Pest infestation.";
+export { advisory } from "./sms-advisory.js";
+
+const languageCodes = { ENG: "ENG", ENGLISH: "ENG", BIS: "BIS", BISAYA: "BIS", TAG: "TAG", TAGALOG: "TAG" };
+export const SMS_LANGUAGE_SUFFIX = /\s+(BISAYA|BIS|TAGALOG|TAG|ENGLISH|ENG)$/i;
+
+const helpCopy = {
+  ENG: ["Text ANI <ZIP/CITY> <CROP> <PROBLEM>.", "Example", "For names with spaces", "Crop presets", "Common farm problems", "You can describe other problems in your own words."],
+  BIS: ["I-text ang ANI <ZIP/SYUDAD> <TANOM> <PROBLEMA>.", "Pananglitan", "Para sa ngalan nga adunay espasyo", "Mga tanom", "Kasagarang problema sa uma", "Pwede nimong ihulagway ang ubang problema sa kaugalingong mga pulong."],
+  TAG: ["I-text ang ANI <ZIP/LUNGSOD> <PANANIM> <PROBLEMA>.", "Halimbawa", "Kung may espasyo sa pangalan", "Mga pananim", "Karaniwang problema sa bukid", "Puwede mong ilarawan ang iba pang problema sa sarili mong salita."],
+};
+const problemLabels = {
+  BIS: ["Peste", "Ubos nga ani", "Dili matag-an nga panahon", "Katambok sa yuta", "Tubig / irigasyon", "Taas nga gasto sa mga gamit sa uma"],
+  TAG: ["Peste", "Mababang ani", "Pabago-bagong panahon", "Taba ng lupa", "Tubig / irigasyon", "Mataas na gastos sa pagsasaka"],
+};
+
+export function smsHelp(lang = "ENG") {
+  const [format, example, spaces, crops, problems, other] = helpCopy[lang] || helpCopy.ENG;
+  return [
+    format,
+    `${example}: ANI 9200 RICE DROUGHT`,
+    `${spaces}: ANI Iligan City | Sweet potato | Pest infestation`,
+    `${crops}: ${CROPS.join(", ")}`,
+    `${problems}: ${(problemLabels[lang] || PROBLEMS).join(", ")}`,
+    other,
+  ].join("\n");
+}
 
 export function normalizePhone(value) {
   let number = String(value ?? "").trim().replace(/[\s()-]/g, "");
@@ -14,9 +39,9 @@ export function parseSms(message) {
   const match = String(message ?? "").trim().match(/^ANI(?:\s+([\s\S]*))?$/i);
   if (!match) return null;
   let body = match[1]?.trim() || "";
-  const lang = body.match(/\s+(BIS|TAG|ENG)$/i)?.[1].toUpperCase() || "ENG";
-  body = body.replace(/\s+(BIS|TAG|ENG)$/i, "").trim();
-  if (/^HELP$/i.test(body)) return { kind: "help" };
+  const lang = languageCodes[body.match(SMS_LANGUAGE_SUFFIX)?.[1].toUpperCase()] || "ENG";
+  body = body.replace(SMS_LANGUAGE_SUFFIX, "").trim();
+  if (/^HELP$/i.test(body)) return { kind: "help", lang };
   if (/^ALERTS (ON|OFF)$/i.test(body)) return { kind: "alerts", on: /ON$/i.test(body), lang };
   if (/^VERIFY \d{8}$/i.test(body)) return { kind: "verify", code: body.slice(-8) };
 
@@ -29,7 +54,7 @@ export function parseSms(message) {
   const location = MINDANAO_LOCATIONS.find(({ name }) =>
     name.toLowerCase() === city?.toLowerCase() ||
     name.toLowerCase().replace(/ city$/, "") === city?.toLowerCase());
-  if (!location || !rawCrop || !problem || /\|/.test(problem) || message.length > 480) return { kind: "help" };
+  if (!location || !rawCrop || !problem || /\|/.test(problem) || message.length > 480) return { kind: "help", lang };
   const cropKey = rawCrop.replaceAll("_", " ").toLowerCase();
   const crop = /^rice$|^palay$/i.test(cropKey) ? "Rice (palay)"
     : CROPS.find((name) => name.toLowerCase() === cropKey) || rawCrop.replaceAll("_", " ");
@@ -47,42 +72,6 @@ export function verifyTwilio(signature, publicUrl, data, authToken) {
   if (!authToken || !publicUrl) return false;
   const value = Object.keys(data).sort().reduce((all, key) => all + key + data[key], publicUrl);
   return equalSecret(signature, createHmac("sha1", authToken).update(value).digest("base64"));
-}
-
-export async function advisory({ city, crop, problem, lang }) {
-  const location = MINDANAO_LOCATIONS.find(({ name }) => name === city);
-  const head = `Tagna-Ani | ${city} | ${crop} | ${problem}`;
-  const words = {
-    ENG: ["Today's high", "chance of rain", "Live weather is unavailable. Check local conditions before field work."],
-    TAG: ["Pinakamataas ngayon", "posibilidad ng ulan", "Walang live na datos ng panahon. Suriin muna ang lagay sa bukid."],
-    BIS: ["Kinatas-ang temperatura karon", "posibilidad sa ulan", "Walay live nga datos sa panahon. Susiha una ang kahimtang sa uma."],
-  }[lang] || ["Today's high", "chance of rain", "Live weather is unavailable."];
-  if (location) {
-    try {
-      const query = new URLSearchParams({
-        latitude: location.lat, longitude: location.lon, forecast_days: 1,
-        daily: "temperature_2m_max,precipitation_probability_max", timezone: "Asia/Manila",
-      });
-      const response = await fetch(`https://api.open-meteo.com/v1/forecast?${query}`, { signal: AbortSignal.timeout(5000) });
-      if (response.ok) {
-        const { daily } = await response.json();
-        const temperature = daily?.temperature_2m_max?.[0];
-        const rain = daily?.precipitation_probability_max?.[0];
-        if (Number.isFinite(temperature) && Number.isFinite(rain)) {
-          const issue = String(problem);
-          const advice = /drought|dry|init|tagtuyot/i.test(issue)
-            ? { ENG: "Check root-zone moisture before irrigating.", TAG: "Suriin ang halumigmig ng lupa bago magpatubig.", BIS: "Susiha ang kaumog sa yuta sa dili pa magpatubig." }
-            : /flood|baha|rain/i.test(issue)
-              ? { ENG: "Inspect drainage and avoid working in flooded areas.", TAG: "Suriin ang daluyan ng tubig at iwasan ang binahang lugar.", BIS: "Susiha ang agianan sa tubig ug likayi ang nabahaan nga dapit." }
-              : { ENG: "Inspect affected plants and ask your local agriculture office for crop-specific advice.", TAG: "Suriin ang apektadong halaman at magtanong sa lokal na tanggapan ng agrikultura.", BIS: "Susiha ang apektadong tanom ug pangutana sa lokal nga opisina sa agrikultura." };
-          return `${head}\n${words[0]} ${Math.round(temperature)} C, ${Math.round(rain)}% ${words[1]}. ${advice[lang] || advice.ENG}`;
-        }
-      }
-    } catch {
-      // Report missing observations instead of substituting example weather.
-    }
-  }
-  return `${head}\n${words[2]}`;
 }
 
 export async function sendSms(phone, message) {

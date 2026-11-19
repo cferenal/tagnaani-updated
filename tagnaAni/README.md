@@ -121,3 +121,11 @@ offline-first APK, package a dedicated client with Capacitor and add a versioned
 HTTPS API with mobile sessions and offline record sync. Store only public
 configuration in the APK. The current browser-local records do not sync across
 devices.
+
+SMS advisories use Open-Meteo or, when it is unavailable, MET Norway for
+available weather fields. NASA POWER climatology supplies a historical
+monthly root-zone wetness index and the inputs for the optional 18-month
+rotation screen. The rotation is a planning option and uses assumed crop
+thresholds. Missing fields and unmeasured CO2 are labeled in the SMS.
+`ANI HELP BISAYA`, `ANI HELP TAGALOG`, and `ANI HELP ENGLISH` send the
+format, examples, supported crop presets, and typical farm problems.

@@ -23,11 +23,11 @@ export default function AppShell({ children, hideNav = false }) {
           hideNav ? "pb-8" : "pb-28",
         )}
       >
-        {children}
+        <div className="mx-auto w-full max-w-6xl">{children}</div>
       </div>
 
       {!hideNav && (
-        <nav className="pointer-events-none absolute bottom-4 left-0 right-0 z-40 px-4">
+        <nav className="pointer-events-none absolute bottom-4 left-0 right-0 z-40 mx-auto w-full max-w-xl px-4">
           <div className="pointer-events-auto flex items-center justify-between rounded-[1.6rem] border border-[#643100]/30 bg-[#F6E6D4]/95 px-1.5 py-1.5 shadow-[0_12px_28px_-14px_rgba(100,49,0,0.65)] backdrop-blur-xl">
             {TABS.map(({ to, label, Icon }) => {
               const active = to === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(to);

@@ -44,36 +44,10 @@ function RootComponent() {
   }
   return (
     <AuthProvider>
-      <div className="phone-stage">
-        <div className="phone-frame">
-          {/* Layer 1: Base phone frame image */}
-          <img
-            src="/case.png"
-            alt=""
-            className="pointer-events-none absolute inset-0 h-full w-full select-none object-fill"
-          />
-
-          {/* Layer 2: Interactive app screen inside the phone bezel */}
-          <div className="phone-screen">
-            <div className="phone-scroll no-scrollbar">
-              <Outlet />
-            </div>
-          </div>
-
-          {/* Layer 3: Multiply overlay so the black notch & inner bezel curve sit cleanly over the screen */}
-          <img
-            src="/case.png"
-            alt=""
-            aria-hidden="true"
-            className="phone-bezel-overlay pointer-events-none absolute inset-0 h-full w-full select-none object-fill"
-          />
-        </div>
-      </div>
-
-      {/* Position phone toast alerts slightly lower so they sit below the phone notch */}
+      <div className="app-viewport"><Outlet /></div>
       <Toaster
         position="top-center"
-        offset="64px"
+        offset="20px"
         toastOptions={{
           style: {
             maxWidth: "320px",

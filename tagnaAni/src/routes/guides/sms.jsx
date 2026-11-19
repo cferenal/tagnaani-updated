@@ -27,8 +27,8 @@ function SmsGuide() {
         <p>These are the choices in app setup. In an SMS, you can also describe what you see in your own words, such as drought or yellow leaves. Replies give general guidance.</p>
         <ul className="list-disc pl-6">{PROBLEMS.map((problem) => <li key={problem}>{problem}</li>)}</ul>
       </section>
-      <p>Text <code>ANI HELP</code> for a reminder of the format and two examples.</p>
-      <p>Add <code>BIS</code>, <code>TAG</code>, or <code>ENG</code> at the end to choose your reply language.</p>
+      <p>Text <code>ANI HELP</code> for the format, examples, crop presets, and common farm problems.</p>
+      <p>Add <code>BISAYA</code> (or <code>BIS</code>), <code>TAGALOG</code> (or <code>TAG</code>), or <code>ENGLISH</code> (or <code>ENG</code>) at the end to choose your reply language.</p>
       <p>Tagna-Ani keeps recent advisory requests and sender numbers so the team can troubleshoot SMS replies.</p>
       <p>When daily reminders are available, text <code>ANI ALERTS ON</code> after your first advisory request. Text <code>ANI ALERTS OFF</code> to stop.</p>
     </PublicArticle>
